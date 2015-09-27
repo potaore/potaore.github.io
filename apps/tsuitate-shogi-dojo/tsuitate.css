@@ -1,0 +1,228 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  font: 13px Helvetica, Arial;
+  background-image:url("./images/background/tatami01.jpg");
+}
+
+form { padding: 0; width: 100%; }
+form input { border: 0; padding: 10px; width: 90%; background: rgb(230, 255, 240);}
+form button { width: 10%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+#messages { list-style-type: none; margin: 0; padding: 0; color : #99FF99;}
+#messages li { padding: 3px 10px; }
+#messages li:nth-child(odd) { }
+li.system-info { color : #FFFF99;}
+
+#chatDiv { background: #000; margin: 0; position: absolute; bottom: 0; width: 100%; display: none; }
+#chatMessageDiv { width: 100%; height : 150px; max-height: 150px; overflow-y: scroll; }
+
+#title {
+  width: 100%;
+  height: 50px;
+  background-image:url("./images/background/Walnut01-p.jpg");
+}
+#title-inner {
+  color: white;
+  padding: 10px 10px 10px 15px;
+  font-size: x-large; 
+  font-weight: bold;
+  float: left;
+}
+
+#connection-info {
+  color   : white;
+  padding : 25px 15px 15px 15px;
+  position: relative;
+  float: right;
+  bottom: 0px;
+}
+
+#lobby {
+  width : 500px; 
+  margin: 15px;
+  padding : 5px;
+  width : 1100px; 
+  position:fixed;
+  background-image:url("./images/background/Walnut06-p.jpg");
+}
+#lobby-logout {
+  display: block;
+}
+#lobby-login {
+  display: none;
+}
+#lobby-watch {
+  display: none;
+}
+
+#room {
+  display: none;
+}
+
+#roomWatchMenu {
+  margin: 15px;
+  padding : 5px;
+  width : 1100px; 
+  position:fixed;
+  background-image:url("./images/background/Walnut06-p.jpg");
+  display: none;
+}
+
+#game {
+  display: none;
+  top : 10px;
+  position:fixed;
+}
+
+#gameMessageAreaDiv { 
+  width : 250px; 
+  height : 250px;
+  top: 475px;
+  left: 15px;
+  position:absolute;
+  background-image:url("./images/background/Walnut01-p.jpg");
+}
+#gameMessageArea { list-style-type: none; margin: 0; padding: 0; color: white;}
+#gameMessageArea li { padding: 5px 10px; }
+.cell 
+{ 
+  width : 60px; 
+  height : 64px;
+  margin : 0px;
+  padding : 0px;
+  border : none;
+  position:absolute;
+}
+.koma 
+{ 
+  width : 58px; 
+  height : 62px;
+  margin : 0px;
+  padding : 0px;
+  top:0;
+  left:0;
+  border : none;
+  position:relative;
+}
+.komadai
+{
+  width : 250px; 
+  height : 250px;
+  margin : 15px;
+  padding : 15px;
+  position:absolute;
+  border : none;
+  background-image:url("./images/board/japanese-chess-bg.jpg");
+}
+#komadai1 {
+  top:470px;
+  left:860px;
+}
+#komadai2 {
+  top:85px;
+  left:0px;
+}
+
+.gameInfo
+{
+  width : 250px; 
+  height : 30px;
+  margin : 15px;
+  padding: 5px;
+  position:absolute;
+  background-image:url("./images/board/japanese-chess-bg.jpg");
+}
+#gameInfo1 {
+  top:440px;
+  left:860px;
+}
+#gameInfo2 {
+  top:335px;
+  left:0px;
+}
+
+#kifuInfoDiv {
+  display:none;
+  width : 250px; 
+  top: 75px;
+  left: 860px;
+  margin : 15px;
+  padding : 15px;
+  position:absolute;
+}
+#kifuSelectBox {
+  width : 220px; 
+}
+#kifuReplayDiv {
+  display:none;
+  width : 500px; 
+  top: 390px;
+  left: 860px;
+  margin : 15px;
+  padding : 15px;
+  position:absolute;
+}
+#modal-overlay {
+  z-index:1;
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:120%;
+  background-color:rgba(0,0,0,0.5);
+}
+.modal-window {
+  z-index:2;
+  display:none;
+  position:fixed;
+  top:400px;
+  left:375px;
+  width:400px;
+  height:150px;
+  padding: 50px;
+  background-color:rgba(256,256,256,1);
+  text-align: center;
+  vertical-align: middle;
+}
+.control-button {
+  width:50px;
+  height:30px;
+}
+.menu-button {
+  width:80px;
+  height:30px;
+}
+.confirm-button {
+  width:100px;
+  height:30px;
+}
+.board {
+  z-index:-1;
+  top:100px;
+  left:270px;
+  position:absolute;
+  text-align: center;
+  vertical-align: middle;
+}
+#board {
+  top:130px;
+  left:300px;
+  width : 536px; 
+  height : 576px;
+  border : none;
+  position:absolute;
+  text-align: center;
+  vertical-align: middle;
+  margin : 0px;
+  padding : 0px;
+}
+tr {
+  border : none;
+  margin : 0px;
+  padding : 0px;
+}
+td {
+  border : none;
+  margin : 0px;
+  padding : 0px;
+}
