@@ -1,0 +1,3 @@
+[submodule "apps/tsuitate-shogi-dojo"]
+	path = apps/tsuitate-shogi-dojo
+	url = https://potaore@bitbucket.org/potaore/tsuitate-shogi-dojo-client.git
