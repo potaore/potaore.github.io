@@ -1,0 +1,74 @@
+.menu
+{
+	background-color:#228822; 
+	width:70px;
+	padding : 4px;
+	margin : 4px;
+	color : white;
+}
+
+.menu:hover 
+{
+	background-color: #228888; 
+	cursor			: pointer;
+}
+
+body
+{
+	background-color :#222222;
+	color : white;
+}
+
+A
+{
+	text-decoration:none;
+	background-color:#666611;
+	cursor: pointer;
+}
+
+
+A:link { color: white} 
+
+A:visited { color: white} 
+
+A:hover 
+{ 
+	color: white;
+	background-color:#888800;
+} 
+
+A:active { color: white } 
+
+textarea {
+	background:#ddffdd;
+	font-weight : bold;
+}
+
+.content article
+{ 
+	padding :5px;
+	margin : 0px;
+}
+
+.content p
+{
+	margin : 0px;
+	padding :8px;
+	background-color:#115555;
+	color : white;
+}
+.content header
+{
+	margin : 0px;
+	padding :8px;
+	text-align: left;
+	background-color:#aa4499;
+	color : white;
+}
+
+.content footer
+{
+	text-align: right;
+	background-color:#115555;
+	color : white;
+}

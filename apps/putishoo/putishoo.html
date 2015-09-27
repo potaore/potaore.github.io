@@ -1,0 +1,41 @@
+<html>
+	<title>putishoo</title>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<script type="text/javascript" src="underscore.js"></script>
+		<script type="text/javascript" src="putishoo.js"></script>
+		<link rel="stylesheet" href="../../style.css" type="text/css">
+ 	</head>
+	 <body>
+		 <canvas id="putishooCanvas" width="100" height="100"></canvas>
+	    <div>
+	    <a id="switch1"
+	      onclick='document.getElementById("explanation").style.display = "block"
+	                document.getElementById("switch2").style.display = "block"
+	                document.getElementById("switch1").style.display = "none"'>
+	                ＋ゲームの説明＋
+	    </a>
+	    <a id="switch2" style="display:none;"
+	      onclick='document.getElementById("explanation").style.display = "none"
+	               document.getElementById("switch2").style.display = "none"
+	                document.getElementById("switch1").style.display = "block"'>
+	                －ゲームの説明－
+	    </a>
+	    </div>
+	    <div style="display:none;" id="explanation">
+	      <h3>操作方法</h3>
+	      ・矢印キー ：移動<br />
+	      ・zキー：通常ショット（近接攻撃）<br />
+	      ・xキー：特殊ショット（長距離貫通攻撃）
+	      <h3>チェイン</h3>
+	      通常攻撃を連続して成功させると画面左下の<img src="images/chain1.png">が<img src="images/chain2.png">に変化していきます。<br />
+	      <img src="images/chain2.png">が6個たまると、画面右下に<img src="images/bullet2stock.png">が追加されます。
+	      <h3>特殊ショット（xキー）</h3>
+	      特殊ショット利用すると、画面右下の<img src="images/bullet2stock.png">を1つ消費します。
+	      <h3>得点ボーナス</h3>
+	      通常ショットが成功した場合、<img src="images/chain2.png">×1のボーナスポイントが加算されます。<br />
+	      特殊ショットが成功した場合、<img src="images/bullet2stock.png">×2のボーナスポイントが加算されます。
+	    </div><br>
+	    興味のある方はどうぞ→<a href="./putishoo.coffee" target="_blanck">coffeescriptのコード</a>
+	 </body>
+</html>

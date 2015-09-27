@@ -1,0 +1,107 @@
+<html>
+	<title>genes</title>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<script type="text/javascript" src="underscore.js"></script>
+		<script type="text/javascript" src="genes.js"></script>
+		<link rel="stylesheet" href="../../style.css" type="text/css">
+ 	</head>
+	 <body>
+	 	<table>
+	 		<tr>
+	 			<td>
+			 		<button id='resetButton' onclick="reset()">Reset</button>
+			 		<button id='calcButton' onclick="calcNext()">Next</button>
+				 	<canvas id="canvas" width="350" height="350"></canvas>
+	 			</td>
+	 			<td>
+			 		<table>
+			 			<tr>
+			 				<td>町の数</td>
+			 				<td><input id="tNum" value='20' type="text"></input></td>
+			 			</tr>
+			 			<tr>
+			 				<td>個体数</td>
+			 				<td><input id="geneNum" value='200' type="text"></input></td>
+
+			 			</tr>
+			 			<tr>
+			 				<td>生き残り固体数</td>
+			 				<td><input id="svNum" value='20' type="text"></input></td>
+			 			</tr>
+
+			 			<tr>
+			 				<td>突然変異確率</td>
+			 				<td><input id="mutation" value='10' type="text"></input></td>
+			 			</tr>
+			 			<tr>
+			 				<td>クリックごとの世代数</td>
+			 				<td><input id="generationNum" value='10' type="text"></input></td>
+			 			<tr>
+			 		</table>
+	 			</td>
+	 		</tr>
+	 	</table>
+	 </body>
+	 <script>
+	 	function getInt(id){
+	 		return defaultInt(parseInt(document.getElementById(id).value));
+	 	}
+
+	 	function defaultInt(value){
+	 		if(value == NaN || value <= 0) return 0;
+	 		return value;
+	 	}
+
+
+	 	function reset(){
+	 		newMng(getInt('tNum'), getInt('geneNum'));
+	 	}
+
+	 	function calcNext(){
+	 		disable(true);
+	 		calc(getInt('generationNum'), getInt('mutation'), getInt('svNum'), getInt('geneNum'));
+	 	}
+
+	 	function disable(flag){
+	 		document.getElementById('tNum').disabled = flag;
+	 		document.getElementById('geneNum').disabled = flag;
+	 		document.getElementById('svNum').disabled = flag;
+	 		document.getElementById('mutation').disabled = flag;
+	 		document.getElementById('generationNum').disabled = flag;
+	 		document.getElementById('resetButton').disabled = flag;
+	 		document.getElementById('calcButton').disabled = flag;
+	 	}
+
+	 	reset();
+
+		function draw(order) {
+			var canvas = document.getElementById('canvas');
+			var ctx = canvas.getContext('2d');
+			var i, point
+
+			ctx.clearRect(0,0,1000,1000);
+
+			ctx.strokeStyle = 'rgb(150, 240, 240)'
+			
+			for(i = 0; i < points.length; i++){
+				ctx.beginPath();
+				point = points[order[i]]
+				ctx.arc(point.x + 10, point.y + 10, 5, 0, Math.PI*2, false)
+				ctx.closePath();
+				ctx.stroke();
+			}
+
+			ctx.beginPath();
+			for(i = 0; i < points.length; i++){
+			point = points[order[i]]
+				if(i == 0) 
+					ctx.moveTo(point.x + 10, point.y + 10)
+				else
+					ctx.lineTo(point.x + 10, point.y + 10)
+			}
+			ctx.closePath();
+			ctx.stroke();
+		}
+	 </script>
+</html>

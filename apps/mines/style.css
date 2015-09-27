@@ -1,0 +1,109 @@
+body
+{
+	background-color :#222222;
+	color : white;
+}
+
+.cell
+{
+	background-color:#226644;
+	width:18px;
+	height:18px;
+	padding : 0px;
+	margin : 0px;
+	color : white;
+	table-layout: fixed;
+	cursor: default;
+	border: solid 1px #222222;
+	text-align:center;
+	vertical-align:middle;
+}
+
+.cell:hover
+{
+	background-color:#aaaaaa;
+	color : black;
+	border: solid 1px #44ffff;
+}
+
+.diggedcell
+{
+	background-color:#334466;
+	width:18px;
+	height:18px;
+	padding : 0px;
+	margin : 0px;
+	color : white;
+	table-layout: fixed;
+	cursor: default;
+	border: solid 1px #222222;
+	text-align:center;
+}
+
+.diggedcell:hover
+{
+	background-color:#aaaaaa;
+	color : black;
+	border: solid 1px #44ffff
+}
+
+.diggedcellempty
+{
+	background-color:#334466;
+	width:18px;
+	height:18px;
+	padding : 0px;
+	margin : 0px;
+	color : white;
+	table-layout: fixed;
+	cursor: default;
+	border: solid 1px #222222;
+	text-align:center;
+}
+
+.content
+{
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+}
+
+.mine
+{
+	background-color:#dd6655;
+	width:18px;
+	height:18px;
+	padding : 0px;
+	margin : 0px;
+	color : white;
+	table-layout: fixed;
+	cursor: default;
+	border: solid 1px #880000;
+	text-align:center
+}
+.flgmiss
+{
+	background-color:#777711;
+	width:18px;
+	height:18px;
+	padding : 0px;
+	margin : 0px;
+	color : white;
+	table-layout: fixed;
+	cursor: default;
+	border: solid 1px #888888;
+	text-align:center
+}
+
+.diffculty
+{
+	width:140px;
+	height:34px;
+	text-align:center;
+	vertical-align:middle;
+}
+
+.menuarea
+{
+	padding : 5px;
+}

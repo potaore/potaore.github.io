@@ -1,0 +1,76 @@
+<html>
+ <head>
+  <title>Mines</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=IE9 -> IE9" >
+  <link rel="stylesheet" href="style.css" type="text/css">
+  <script type="text/javascript" src="jquery-1.8.2.js"></script>
+
+  <script type="text/javascript" src="src/BL/Cell.js"></script>
+  <script type="text/javascript" src="src/BL/Const.js"></script>
+  <script type="text/javascript" src="src/BL/Game.js"></script>
+  <script type="text/javascript" src="src/BL/Map.js"></script>
+  <script type="text/javascript" src="src/BL/Util.js"></script>
+
+  <script type="text/javascript" src="src/UI/MapTable.js"></script>
+  <script type="text/javascript" src="src/UI/TableCell.js"></script>
+  <script type="text/javascript" src="src/UI/MainProcess.js"></script>
+  <script type="text/javascript" src="src/UI/MessageArea.js"></script>
+  <script type="text/javascript" src="src/UI/StartMenu.js"></script>
+  <script type="text/javascript" src="src/UI/ExtensionMenu.js"></script>
+  <script type="text/javascript" src="src/UI/Timer.js"></script>
+
+ </head>
+
+ <body>
+ <h1 id="gametitle">MINES</h1>
+ <div id="contents" class="content">
+  <div id="startMenu">
+   <button id="startButton">START</button>
+   <span>　width</span><input type="text" size="5" id="widthTextBox"></input>
+   <span>　height</span><input type="text" size="5" id="heigjtTextBox"></input>
+   <span>　mine</span><input type="text" size="5" id="mineTextBox"></input>
+   <span>　</span><span id="message"></span>
+   <br/><br/>
+    <div id="menus">
+      <a style="cursor: pointer; background-color : #446622;" id="exMenuSwitch">＋RuleExtension　</a>
+      <a style="cursor: pointer; background-color : #226644;" id="dfMenuSwitch">＋Difficulty　</a>
+      <a style="cursor: pointer; background-color : #224466;" id="hpMenuSwitch">＋Help　</a>
+      <a style="cursor: pointer; background-color : #442266;" id="srMenuSwitch">＋SystemRequirements　</a>
+      
+     
+      <div style="background-color : #446622;display : none;" id="exMenuArea" class="menuarea">
+       <input type="checkbox" style="cursor: pointer;" id="sharpModeCheckBox" />
+        <label for="sharpModeCheckBox" style="cursor: pointer;">SharpMode</label>
+        <span> ： セルに表示される数字が周囲1マスではなく、周囲2マス（計24マス）に埋まっている地雷の数を表すようになります。</span>
+       <br/>
+       <input type="checkbox" style="cursor: pointer;" id="loopFieldModeCheckBox" />
+        <label for="loopFieldModeCheckBox" style="cursor: pointer;">LoopField</label>
+        <span> ： 地雷カウントの数字の判定がフィールドの上下左右で繋がるようになります。</span>
+      </div>
+      
+      <div style="background-color :#226644; display : none;" id="dfMenuArea" class="menuarea">
+        <button id="beginnerButton" class="diffculty">Beginner</button>
+        <button id="intermediateButton" class="diffculty">Intermediate</button>
+        <button id="expertButton" class="diffculty">Expert</button>
+        <button id="maniacButton" class="diffculty">Maniac</button>
+      </div>
+      <div style="background-color :#224466; display : none;" id="hpMenuArea" class="menuarea">
+        左クリック：選択しているセルを掘ります。<br>
+        右クリック：選択をしているセルに旗を立てます。<br>
+        便利機能：周囲の旗の数と、表示されている数値が等しいセルの上で右クリックすると、周囲のセルを自動で掘ります。
+      </div>
+      <div style="background-color :#442266; display : none;" id="srMenuArea" class="menuarea">
+        Chrome 23.0.1271.64 m<br />
+        Opera 12.10<br />
+        Safari 5.1.7<br />
+        Firefox 16.0.2<br />
+        （Internet Explore 9.0.10）
+      </div>
+    </div>
+  </div>
+ </div>
+ </body>
+
+</html>
+

@@ -1,0 +1,37 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>GameTime</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+<script type="text/javascript">
+	function loadText(){
+	  var xmlHttp;
+	  xmlHttp = new XMLHttpRequest();
+	  xmlHttp.open("GET", "news.html", false);
+	  xmlHttp.send(null);
+	  alert(xmlHttp.responseText);
+	}
+</script>
+</head>
+
+<body bgcolor="#ffeeee" style="vertical-align:middle;">
+<input type="button" value="ファイル読み込み" onClick="loadText()">
+<a href="http://gametime.web.fc2.com/" target="_top"><font size=17>GAME TIME</font></a>　～自作ゲームや生放送～<br/>
+<table>
+<tr>
+<td><a href="news.html" target="main"><div class="menu">News</div></a></td>
+<td><a href="si.html" target="main"><div class="menu">私</div></a></td>
+<td><a href="zakki/zakki.html" target="main"><div class="menu">雑記</div></a></td>
+<td><a href="mygame/top.html" target="main"><div class="menu">ゲーム</div></a></td>
+<td><a href="apps/index.html" target="main"><div class="menu">WebApp</div></a></td>
+<td><a href="nicolive.html" target="main"><div class="menu">ニコ生</div></a></td>
+<td><a href="gradius/dif.html" target="main"><div class="menu">GRADIUS</div></a></td>
+<td><a href="tekken/yoshimitu.html" target="main"><div class="menu">鉄拳</div></a>
+</tr>
+
+
+</table>
+
+</body>
+
+</html>

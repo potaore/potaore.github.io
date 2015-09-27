@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Language" content="ja" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Script-Type" content="text/javascript" />
+
+    <title>hasapi</title>
+    <script type="text/javascript" src="src/project.js"></script>
+    <link rel="stylesheet" href="../../style.css" type="text/css">
+  </head>
+  <body>
+    <h1>hasapi</h1>
+    <div>
+      キャラクターを動かしてゴールを目指すゲームです。ステージ20まで遊べます。動かない場合、画面を更新してみてください。<br>
+      オリジナルのステージを作成し、URLを生成することができます。
+    </div>
+    <div>
+      <select id="menu" size="1">
+            <option value="1">stage1</option>
+            <option value="2">stage2</option>
+            <option value="3">stage3</option>
+            <option value="4">stage4</option>
+            <option value="5">stage5</option>
+            <option value="6">stage6</option>
+            <option value="7">stage7</option>
+            <option value="8">stage8</option>
+            <option value="9">stage9</option>
+            <option value="10">stage10</option>
+            <option value="11">stage11</option>
+            <option value="12">stage12</option>
+            <option value="13">stage13</option>
+            <option value="14">stage14</option>
+            <option value="15">stage15</option>
+            <option value="16">stage16</option>
+            <option value="17">stage17</option>
+            <option value="18">stage18</option>
+            <option value="19">stage19</option>
+            <option value="20">stage20</option>
+            <option value="edit">Edit</option>
+      </select>
+      <button id="startbutton">START</button>
+      <button id="musicbutton">SOUND ON/OFF</button>
+      <button id="soundbutton">MUSIC ON/OFF</button>
+    </div>
+    <div>
+      体力:<input type="text" id="energydisp" style="ime-mode: disabled;" onkeypress='if(event.keyCode<"0".charCodeAt(0) || "9".charCodeAt(0)<event.keyCode)return false;'></input>
+    </div>
+    <div>
+      <canvas id="canvassample" width="480" height="320"></canvas>
+      <div id="editArea"　style="display:none;">
+        <button id="urlButton">URL生成</button>
+        <textarea id="stgdatatextarea"></textarea>
+      </div>
+    </div>
+
+    <div>
+    <a id="switch1"
+      onclick='document.getElementById("explanation").style.display = "block"
+                document.getElementById("switch2").style.display = "block"
+                document.getElementById("switch1").style.display = "none"'>
+                ＋ゲームの説明＋
+    </a>
+    <a id="switch2" style="display:none;"
+      onclick='document.getElementById("explanation").style.display = "none"
+               document.getElementById("switch2").style.display = "none"
+                document.getElementById("switch1").style.display = "block"'>
+                －ゲームの説明－
+    </a>
+    </div>
+    <div style="display:none;" id="explanation">
+      <h3>ゲームのルール</h3>
+      ・体力がなくなるまでにゴールにたどり着くとステージクリアとなります。<br />
+      <h3>操作方法</h3>
+      ・十字キー ：歩き。1マス移動します。<br />
+      ・ctrl + 十字キー　：ダッシュ。壁にぶつかるまで直進します。<br />
+      ・Enterキー　：自殺します。<br />
+      <h3>床の種類</h3>
+      <img src="img/floor_plain.png">通常の床<br />
+      <img src="img/floor_Ice.png">氷の床　：　障害物がないと止まることができません。<br />
+      <img src="img/floor_net.png">網の床　：　ダッシュで通過することができず、止まってしまいます。<br />
+      <img src="img/floor_step.png">段差のある床　：　歩きで進むことができません。<br />
+      <img src="img/floor_arrow_left.png">一方通行の床　：　決められた方向にしか進めません。<br />
+      <h3>オブジェクトの種類</h3>
+      <img src="img/item_block.png">ブロック　：　通過することができません。<br />
+      <img src="img/item_energy.png">エネルギー　：　体力が５増えます。<br />
+      <img src="img/item_key.png">鍵　：　取得するとゲートを空けられるようになります。<br />
+      <img src="img/item_gate.png">ゲート　：　鍵がないと通過することができません。<br />
+      <img src="img/item_goal.png">ゴール　：　ここに止まるとステージクリアです。ダッシュで通過したり、氷の床で滑って通過してもクリアにはなりません。<br />
+      <img src="img/item_block_ghost.png">透明ブロック　：　一度通過するとブロックになります。<br/>
+      <img src="img/item_energy_ghost.png">透明エネルギー　：　一度通過するとエネルギーになります。<br/>
+      <img src="img/item_key_ghost.png">透明鍵　：　一度通過すると鍵になります。<br/>
+      <img src="img/item_gate_ghost.png">透明ゲート　：　一度通過するとゲートになります。<br/>
+      <img src="img/item_goal_ghost.png">透明ゴール　：　一度通過するとゴールになります。<br/>
+
+      <h3>エディットモードの操作方法</h3>
+      ・十字キー　：　カーソルを移動します。<br/>
+      ・スペースキー　：　床の種類を変更します。<br/>
+      ・エンターキー　：　オブジェクトの種類を変更します。<br/>
+      ・Gキー　：　オブジェクトを透明にします。<br/>
+      ・Sキー　：　プレーヤーのスタート位置を変更します。<br/>
+      ・Oキー　：　下のテキストボックスにデータを出力します。<br/>
+      ・Uキー　：　下のテキストボックスにステージのURLを出力します。<br/>
+      ・Lキー　：　下のテキストボックスからデータを読み込みます。<br/>
+      ・上部テキストボックス　：　スタート時の残り歩数を設定できます。<br/>
+      ・Pキー　：　下のテキストボックスからデータを読み込み、プレイを開始します。<br/>
+    </div>
+
+  </body>
+</html>

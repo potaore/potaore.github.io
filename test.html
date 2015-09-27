@@ -1,0 +1,66 @@
+<html>
+ <head>
+  <title>MineSweeper</title>
+  <link rel="stylesheet" href="style.css" type="text/css">
+  <script type="text/javascript" src="jquery-1.8.2.js"></script>
+  <script type="text/javascript">
+	
+	TestObject = function(){
+		var me = this;
+		me.elem =  $('<div class="menu">button</div>');
+		me.elem.click(function(){
+			createTable(8,8);
+		});
+	};
+	
+	MapTable = function(sizeX, sizeY){
+		var me = this;
+		var str = '';
+		var cells = [];
+		var i,j;
+		me.elem =  $('<table></table>');
+		for(j = 0; j < sizeX ; j++){
+			 cells[j] = [];
+		}
+		var row;
+		for(i = 0; i < sizeY ; i++){
+			row = new Row();
+			me.elem.append(row.elem);
+			for(j = 0; j < sizeX ; j++){
+				cells[j][i] = new Cell();
+				row.elem.append(cells[j][i].elem);
+			}
+		}
+		
+	};
+	
+	Cell = function(){
+		var me = this;
+		me.elem =  $('<td class="menu">Åú</td>');
+	}
+	
+	Row = function(){
+		var me = this;
+		me.elem =  $('<tr></tr>');
+	}
+	
+	$(function(){
+		var asdf = new TestObject();
+		$(document.body).append(asdf.elem);
+	});
+	
+	var table
+	function createTable(sizeX,sizeY){
+		
+		if(table != null && table.elem != null) table.elem.remove();
+		table = new MapTable(sizeX,sizeY);
+		$(document.body).append(table.elem);
+	}
+  </script>
+ </head>
+
+ <body>
+
+ </body>
+
+</html>

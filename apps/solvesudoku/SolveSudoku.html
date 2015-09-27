@@ -1,0 +1,49 @@
+<html>
+	<title>SolveSudoku</title>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=IE9 -> IE9" >
+		<script type="text/javascript" src="./src/BL/Cursor.js"></script>
+		<script type="text/javascript" src="./src/BL/MyHash.js"></script>
+		<script type="text/javascript" src="./src/BL/Reader.js"></script>
+		<script type="text/javascript" src="./src/BL/Solver.js"></script>
+		<script type="text/javascript" src="./src/BL/FunctionLooper.js"></script>
+		<script type="text/javascript" src="./src/UI/ClickEvent.js"></script>
+		<link rel="stylesheet" href="../../style.css" type="text/css">
+	</head>
+<body bgcolor="#eeeeff">
+<h1>SolveSudoku</h1>
+
+<p>
+数独を自動的に解くプログラムです。<br>
+多少重いので注意してください。
+</p>
+
+<form name="form1">
+	・左のテキストエリアにカンマ（,）区切りで問題を入力してください。<br />
+	・空白は0を入力してください<br>
+	<textarea name="senderTextArea" rows="10" cols="17">
+1,2,3,4,5,6,7,8,9
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0</textarea>
+	<textarea name="listnerTextArea" rows="10" cols="17"></textarea><br />
+		<input type="button" value="問題を解く"
+			 onClick="SolveButtonClickEvent(senderTextArea, listnerTextArea)">
+</form>
+
+動作確認<br />
+Opera 12.10<br />
+Chrome 23.0.1271.64 m<br />
+Internet Explore 9.0.10<br />
+Firefox 16.0.2<br />
+Safari 5.1.7<br />
+
+
+</body>
+</html>
