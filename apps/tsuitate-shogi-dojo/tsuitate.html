@@ -30,6 +30,14 @@
           });
           socket.on('disconnect', function(arg){
             $("#messages").append($('<li>').addClass('system-info').text("（サーバーとの接続が切れました。）"));
+              showModal(["サーバーとの接続が切れました。"], { ok : true });
+            graphicApi.afterHideModal = function() {
+              $("#lobby-menu").hide();
+              $("#lobby").show();
+              $("#lobby-watch").show();
+              $("#game").hide();
+              $("#room").hide();
+            };
           });
           socket.on('message', function(arg){
             if( arg.type === "system-info" ) {
@@ -53,7 +61,7 @@
               tr = $("<tr>");
               tr.append( $("<td>").append(game.startDateTime) );
               tr.append( $("<td>").append(game.id) );
-              tr.append( $("<td><input type='button' value='対局を観戦する' onClick='watch()' /></td>") );
+              tr.append( $("<td><input type='button' value='対局を観戦する' onClick='watch(\""+game.id+"\");' /></td>") );
               $("#table-rooms-body").append(tr);
             });
           });
@@ -153,10 +161,10 @@
         };
         showModal(["対戦相手を待っています。"], { cancel : true});
       };
-      var watch= function() {
+      var watch= function(gameId) {
         socket = getSocket();
         graphicApi.clearTable();
-        socket.emit('room',  { method : "watch" } );
+        socket.emit('room',  { method : "watch", gameId : gameId } );
         $("#lobby").hide();
         $("#roomWatchMenu").show();
       };
