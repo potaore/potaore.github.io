@@ -9,12 +9,29 @@
       var api = {};
       var graphicApi = {};
       var kifuApi = {};
+      var gTemp = {};
+function uuid() {
+  var uuid = "", i, random;
+  for (i = 0; i < 32; i++) {
+    random = Math.random() * 16 | 0;
+
+    if (i == 8 || i == 12 || i == 16 || i == 20) {
+      uuid += "-"
+    }
+    uuid += (i == 12 ? 4 : (i == 16 ? (random & 3 | 8) : random)).toString(16);
+  }
+  return uuid;
+}
     </script>
     <script src="./underscore/underscore-min.js"></script>
     <script src="./jquery/jquery-2.1.4.min.js"></script>
     <script src="./socket.io/socket.io.js"></script>
-    <script src="./player.js"></script>    
+    <script src="./player.js"></script>
+    <script src="./soundmanager.js"></script>
     <script>
+      $(document).ready( function() {
+        loadSounds();
+      });
       var socket = null;
       var getSocket = function () {
         if(socket === null || socket === undefined) {
@@ -70,22 +87,16 @@
           socket.on('noticePlayerNumber', function(playerNumber){
             $("#game").show();
             $("#room").show();
+            $("#resignButton").show();
             $("#lobby").hide();
             graphicApi.afterHideModal = undefined;
-            graphicApi.hideModal();
-            gameApi.startGame(playerNumber);
-            console.log("noticePlayerNumber : " + playerNumber);
+            gTemp.node.emit( "graphicApi.hideModal" );
+            gTemp.node.emit( "gameApi.startGame", playerNumber );
             if( playerNumber == 2 ) {
-              graphicApi.flipBord(true);
+              gTemp.node.emit( "graphicApi.flipBord", true );
             } else {
-              graphicApi.flipBord(false);
+              gTemp.node.emit( "graphicApi.flipBord", false );
             }
-          });
-          socket.on('moveKoma', function(command){
-            gameApi.moveKoma(command);
-          });
-          socket.on('putKoma', function(command){
-            gameApi.putKoma(command);
           });
 
           socket.on('game', function(command){
@@ -110,30 +121,31 @@
           });
 
           socket.on('command', function(command){
-            console.log("command : " + command);
-            gameApi.doCommand(command);
+            gTemp.node.emit( "gameApi.doCommand", command );
           });
           socket.on('endGame', function( info ) {
             $("#game").show();
             $("#room").show();
             $("#roomWatchMenu").show();
-            gameApi.endGame(info);
-            kifuApi.replayKifu(info.kifu);
-            kifuApi.toEnd();
+            $("#resignButton").hide();
+            gTemp.node.emit( "gameApi.endGame", info );
+            gTemp.node.emit( "kifuApi.replayKifu", info.kifu);
+            gTemp.node.emit( "kifuApi.toEnd" );
           });
 
           //watcher api
           socket.on('kifu', function( info ) {
             $("#game").show();
             $("#room").show();
+            $("#resignButton").hide();
             $("#room-watch-menu").show();
-            kifuApi.replayKifu(info.kifu);
-            kifuApi.toEnd();
-            kifuApi.setElapsedTime( info.elapsedTime );
+            gTemp.node.emit( "kifuApi.replayKifu", info.kifu);
+            gTemp.node.emit( "kifuApi.toEnd" );
+            gTemp.node.emit( "kifuApi.setElapsedTime", info.elapsedTime );
           });
           socket.on('distributeKifu', function( info ) {
-            kifuApi.addKifu(info.te);
-            kifuApi.toEnd();
+            gTemp.node.emit( "kifuApi.addKifu", info.te);
+            gTemp.node.emit( "kifuApi.toEnd" );
           });
         }
 
@@ -161,9 +173,15 @@
         };
         showModal(["対戦相手を待っています。"], { cancel : true});
       };
+
+      var resign = function () {
+        socket = getSocket();
+        socket.emit('game', { method : "resign"} ); 
+      }
+
       var watch= function(gameId) {
         socket = getSocket();
-        graphicApi.clearTable();
+        gTemp.node.emit( "graphicApi.clearTable" );
         socket.emit('room',  { method : "watch", gameId : gameId } );
         $("#lobby").hide();
         $("#roomWatchMenu").show();
@@ -182,7 +200,7 @@
         
         socket.emit('room', { method : "exitRoom" } ); 
         socket.emit('getPlayingGames', "");
-        kifuApi.stop();
+        gTemp.node.emit( "kifuApi.stop" );
       }
       var connect = function() {
         socket = getSocket();
@@ -263,6 +281,7 @@
         <div id="game" class="game">
           <div id="komadai2" class="komadai"></div>
           <div id="gameInfo2" class="gameInfo"></div>
+          <input type='button' id='resignButton'    class='confirm-button' value='投了'   onClick='resign();' />
           <div id="board"></div>
           <img id="boardImg" class='board' src='./images/board/japanese-chess-b02.jpg'>
           <div id="gameInfo1" class="gameInfo"></div>
@@ -271,24 +290,24 @@
             <select size="19" id="kifuSelectBox"></select>
           </div>
           <div id="kifuReplayDiv">
-            <input type='button' id='toStartButton' class='control-button' value='←←' onClick='kifuApi.toStart();' />
-            <input type='button' id='backButton'    class='control-button' value='←'   onClick='kifuApi.back();' />
-            <input type='button' id='nextButton'    class='control-button' value='→'   onClick='kifuApi.next();' />
-            <input type='button' id='toEndButton'   class='control-button' value='→→' onClick='kifuApi.toEnd();' />
+            <input type='button' id='toStartButton' class='control-button' value='←←' onClick='gTemp.node.emit( "kifuApi.toStart" );' />
+            <input type='button' id='backButton'    class='control-button' value='←'   onClick='gTemp.node.emit( "kifuApi.back" );' />
+            <input type='button' id='nextButton'    class='control-button' value='→'   onClick='gTemp.node.emit( "kifuApi.next" );' />
+            <input type='button' id='toEndButton'   class='control-button' value='→→' onClick='gTemp.node.emit( "kifuApi.toEnd" );' />
           </div>
           <div id="gameMessageAreaDiv" class="gameMessage"><ui id="gameMessageArea"></ui></div>
         </div>
 
         <div id="nariDiv" class="modal-window">
           <div>成りますか？</div>
-          <input type='button' id='nariButton'    class='confirm-button' value='成'   onClick='graphicApi.nari(true);' />
-          <input type='button' id='notNariButton' class='confirm-button' value='不成' onClick='graphicApi.nari(false);' />
+          <input type='button' id='nariButton'    class='confirm-button' value='成'   onClick='gTemp.node.emit( "graphicApi.nari", true );' />
+          <input type='button' id='notNariButton' class='confirm-button' value='不成' onClick='gTemp.node.emit( "graphicApi.nari", false );' />
         </div>
       </div>
       <div id="modal-window" class="modal-window">
         <div id="modal-message"></div>
-        <input type='button' id='modalConfirmButton' class='confirm-button' value='OK' onClick='graphicApi.hideModal();' />
-        <input type='button' id='modalCancelButton'  class='confirm-button' value='キャンセル' onClick='graphicApi.hideModal();' />
+        <input type='button' id='modalConfirmButton' class='confirm-button' value='OK' onClick='gTemp.node.emit( "graphicApi.hideModal" );' />
+        <input type='button' id='modalCancelButton'  class='confirm-button' value='キャンセル' onClick='gTemp.node.emit( "graphicApi.hideModal" );' />
       </div>
       <div id="modal-overlay"></div>
       </div>

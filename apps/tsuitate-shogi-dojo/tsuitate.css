@@ -139,6 +139,13 @@ li.system-info { color : #FFFF99;}
   top:335px;
   left:0px;
 }
+#resignButton {
+  width  : 250px; 
+  height : 50px;
+  position:absolute;
+  top:400px;
+  left:15px;
+}
 
 #kifuInfoDiv {
   display:none;
