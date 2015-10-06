@@ -158,7 +158,7 @@
     }
     h = String(Math.floor(ms / 3600000) + 100).substring(1);
     m = String(Math.floor((ms - h * 3600000) / 60000) + 100).substring(1);
-    s = String(Math.round((ms - h * 3600000 - m * 60000) / 1000) + 100).substring(1);
+    s = String(Math.floor((ms - h * 3600000 - m * 60000) / 1000) + 100).substring(1);
     return m + ':' + s;
   };
 

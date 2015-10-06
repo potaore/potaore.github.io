@@ -183,6 +183,7 @@ function uuid() {
         socket = getSocket();
         gTemp.node.emit( "graphicApi.clearTable" );
         socket.emit('room',  { method : "watch", gameId : gameId } );
+        $("#gameMessageArea").empty();
         $("#lobby").hide();
         $("#roomWatchMenu").show();
       };
