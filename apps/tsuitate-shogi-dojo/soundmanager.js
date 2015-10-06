@@ -27,10 +27,12 @@ function loadSound(url, cont) {
 
 function playSound(name) {
   var buffer = sounds[name];
-  var source = context.createBufferSource();
-  source.buffer = buffer;
-  source.connect(context.destination);
-  source.start(0);
+  if (buffer) {  
+    var source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(context.destination);
+    source.start(0);
+  }
 }
 
 function loadSounds() {

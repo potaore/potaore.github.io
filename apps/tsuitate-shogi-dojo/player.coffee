@@ -782,8 +782,10 @@ node.connect({name : "kifuApi"}, (kifuApiSocket) ->
     i = $("#kifuSelectBox").children().length
     if te.info.type is "moveKoma"
       if not te.foul
+        kifuApiSocket.broadcast.emit( "soundApi.playKomaSound" )
         value = "#{te.turn} : " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
       else
+        kifuApiSocket.broadcast.emit( "soundApi.playFoulSound" )
         value = "#{te.turn} : [反則] " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
       option = $("<option value='#{i}'>#{value}</option>")
     else if te.info.type is "endGame"
