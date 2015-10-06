@@ -1037,8 +1037,10 @@
       flip: false
     };
     graphicApiSocket.on("graphicApi.updateGameInfo", function(command) {
-      domFinder.getGameInfoDiv(1, params.flip).html("▲ 時間：" + computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life);
-      return domFinder.getGameInfoDiv(2, params.flip).html("△ 時間：" + computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life);
+      domFinder.getGameInfoDiv(1, params.flip).empty();
+      domFinder.getGameInfoDiv(2, params.flip).empty();
+      domFinder.getGameInfoDiv(1, params.flip).append($("<span>" + "▲ 時間：" + computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life + "</span>"));
+      return domFinder.getGameInfoDiv(2, params.flip).append($("<span>" + "△ 時間：" + computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life + "</span>"));
     });
     redrawKoma = function(arg) {
       var image, koma, komadai1, komadai2, td, tmp, x, xx, y, yy, _i, _results;
@@ -1235,15 +1237,13 @@
       return allKoma.remove();
     };
     graphicApiSocket.on("graphicApi.clearTable", function() {
-      var board, cell, row, x, xx, y, yy, _i, _results;
+      var board, cell, x, xx, y, yy, _i, _results;
       graphicApi.invatedPosition = null;
       board = $('#board');
-      board.html("");
+      board.empty();
       _results = [];
       for (y = _i = 0; _i < 9; y = ++_i) {
         yy = "" + (y + 1);
-        row = $("<div id='row_" + yy + "'></div>");
-        board.append(row);
         _results.push((function() {
           var _j, _results1;
           _results1 = [];
@@ -1253,7 +1253,7 @@
               top: y * 64,
               left: x * 60
             });
-            _results1.push(row.append(cell));
+            _results1.push(board.append(cell));
           }
           return _results1;
         })());
@@ -1341,7 +1341,7 @@
     kifuApiSocket.on("kifuApi.replayKifu", function(kifu) {
       var index, option, refresh;
       kifuApi.state = "replay";
-      $('#kifuSelectBox').html("");
+      $('#kifuSelectBox').empty();
       $("#kifuInfoDiv").show();
       $("#kifuReplayDiv").show();
       refresh = function(index, board) {

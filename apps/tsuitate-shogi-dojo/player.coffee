@@ -538,8 +538,10 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
     flip : false
 
   graphicApiSocket.on( "graphicApi.updateGameInfo", (command) ->
-    domFinder.getGameInfoDiv(1, params.flip).html( "▲ 時間："+computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life )
-    domFinder.getGameInfoDiv(2, params.flip).html( "△ 時間："+computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life )
+    domFinder.getGameInfoDiv(1, params.flip).empty()
+    domFinder.getGameInfoDiv(2, params.flip).empty()
+    domFinder.getGameInfoDiv(1, params.flip).append( $( "<span>" + "▲ 時間："+computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life + "</span>") )
+    domFinder.getGameInfoDiv(2, params.flip).append( $( "<span>" + "△ 時間："+computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life + "</span>") )
   )
 
   redrawKoma = (arg) ->
@@ -654,15 +656,13 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
   graphicApiSocket.on( "graphicApi.clearTable", ->
     graphicApi.invatedPosition = null
     board = $('#board')
-    board.html("")
+    board.empty()
     for y in [0...9]
       yy = ""+(y+1)
-      row = $("<div id='row_#{yy}'></div>")
-      board.append(row)
       for x in [0...9]
         xx = ""+(9-x)
         cell = $("<div id='cell_#{xx}_#{yy}' class='cell'></div>").offset({ top : y*64, left : x*60 })
-        row.append(cell)
+        board.append(cell)
   )
 
   initializeTableState = ->
@@ -732,7 +732,7 @@ node.connect({name : "kifuApi"}, (kifuApiSocket) ->
 
   kifuApiSocket.on( "kifuApi.replayKifu", (kifu) ->
     kifuApi.state = "replay"
-    $('#kifuSelectBox').html("")
+    $('#kifuSelectBox').empty()
     $("#kifuInfoDiv").show()
     $("#kifuReplayDiv").show()
     refresh = (index, board) ->
