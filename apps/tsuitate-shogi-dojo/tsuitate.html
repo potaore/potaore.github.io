@@ -38,31 +38,10 @@ function uuid() {
           socket = io.connect('http://133.130.72.92:8888');
           //socket = io.connect('http://localhost:8888');
 
-          socket.on('auth.login-ok', function(arg){
-            $("#lobby-login").show();
-            $("#chatDiv").slideDown(500);
-            $("#messages").append($('<li>').addClass('system-info').text("（サーバーに接続しました。）"));
-            $("#messages").append($('<li>').addClass('system-info').text("（これはチャット機能です。下のフォームから送信した内容は、接続している全てのユーザーに発信されます。）"));
-            $("#lobby-logout").hide();
-          });
+          socket.on('auth.login-ok', function(arg){ gTemp.node.emit( "pagingApi.login", arg);});
+          socket.on('auth.login-ng', function(arg){ showModal([arg], { ok : true }); });
+          socket.on('disconnect', function(arg){ gTemp.node.emit( "pagingApi.logout", arg); });
 
-          socket.on('auth.login-ng', function(arg){
-             showModal([arg], { ok : true });
-          });
-
-          socket.on('disconnect', function(arg){
-            $("#messages").append($('<li>').addClass('system-info').text("（サーバーとの接続が切れました。）"));
-              showModal(["サーバーとの接続が切れました。"], { ok : true });
-            graphicApi.afterHideModal = function() {
-              $("#lobby-menu").hide();
-              $("#lobby").show();
-              $("#lobby-watch").show();
-              $("#game").hide();
-              $("#room").hide();
-              $("#lobby-logout").show();
-              $("#lobby-login").hide();
-            };
-          });
           socket.on('message', function(arg){
             if( arg.type === "system-info" ) {
               $("#messages").append($('<li>').addClass('system-info').text(arg.message));
@@ -94,26 +73,9 @@ function uuid() {
           });
 
           //player api
-          socket.on('noticePlayerNumber', function(arg){
-            $("#game").show();
-            $("#room").show();
-            $("#resignButton").show();
-            $("#lobby").hide();
-            graphicApi.afterHideModal = undefined;
-            console.log(arg);
-            gTemp.node.emit( "graphicApi.hideModal" );
-            gTemp.node.emit( "gameApi.startGame", arg );
-            gTemp.node.emit( "graphicApi.setPlayerInfo", arg.account );
-            if( arg.playerNumber == 2 ) {
-              gTemp.node.emit( "graphicApi.flipBord", true );
-            } else {
-              gTemp.node.emit( "graphicApi.flipBord", false );
-            }
-          });
+          socket.on('noticePlayerNumber', function(arg){ gTemp.node.emit( "pagingApi.game", arg); });
 
-          socket.on('game', function(command){
-            gameApi.putKoma(command);
-          });
+          //socket.on('game', function(command){ gameApi.putKoma(command); });
 
           socket.on('gameMessage', function(message) {
             if (message.type == "plain") {
@@ -173,6 +135,9 @@ function uuid() {
 
         return socket;
       }
+
+
+
       var start = function() {
         socket = getSocket();
         socket.emit('room', { method : "startGame"} ); 
@@ -181,9 +146,7 @@ function uuid() {
         $('#kifuSelectBox').empty();
         $("#kifuInfoDiv").hide();
         $("#kifuReplayDiv").hide();
-        graphicApi.afterHideModal = function() {
-          exitRoom();
-        };
+        graphicApi.afterHideModal = function() { exitRoom(); };
         showModal(["対戦相手を待っています。"], { cancel : true});
       };
 
@@ -206,11 +169,7 @@ function uuid() {
         socket.emit('getPlayingGames', ""); 
       }
       var exitRoom = function() {
-        $("#lobby-menu").hide();
-        $("#lobby").show();
-        $("#lobby-watch").show();
-        $("#game").hide();
-        $("#room").hide();
+        gTemp.node.emit( "pagingApi.exitRoom" );
         
         socket.emit('room', { method : "exitRoom" } ); 
         socket.emit('getPlayingGames', "");
@@ -266,16 +225,16 @@ function uuid() {
     <div id='title'>
       <div id='title-inner'>ついたて将棋道場</div>
       <a id="helpbutton" href="./tsuitate-help.html" target="_brank">help</a>
-        <!--
-        <input id="helpbutton" type='button' class='menu-button' value='help' onClick='window.open("./tsuitate-help.html")' />
-      -->
-      
-      <div id='connection-info'></div>
+      <div id='account-info' class='infomation'>
+        <div id='account-icon' class='infomation'></div>
+        <div id='account-name' class='infomation'></div>
+      </div>
+      <div id='connection-info' ></div>
     </div>
     <div>
       <div id='lobby'>
         <div id='lobby-logout'>
-          <input id='loginstr' type='text' class='menu-textbox' placeholder="認証文字列またはゲストログイン名" />
+          <input id='loginstr' type='text' class='menu-textbox' maxlength="20" placeholder="認証文字列またはゲストログイン名" />
           <input id='loginbutton' type='button' class='menu-button' value='ログイン' onClick='connect("account")' />
           <input id='guestloginbutton' type='button' class='menu-button' value='ゲストログイン' onClick='connect("guest")' />
         </div>
@@ -316,7 +275,7 @@ function uuid() {
               <div id="playerinfo2"></div>
             </div>
           </div>
-          <input type='button' id='resignButton'    class='confirm-button' value='投了'   onClick='resign();' />
+          <input type='button' id='resignButton'    class='confirm-button' value='投了' onClick='resign();' />
           <div id="board"></div>
           <img id="boardImg" class='board' src='./images/board/japanese-chess-b02.jpg'>
           <div id="gameInfo1" class="gameInfo">

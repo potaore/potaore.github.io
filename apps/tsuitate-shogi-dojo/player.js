@@ -1048,9 +1048,9 @@
       domFinder.getPlayerImageDiv(2, params.flip).empty();
       domFinder.getPlayerInfoDiv(1, params.flip).empty();
       domFinder.getPlayerInfoDiv(2, params.flip).empty();
-      domFinder.getPlayerImageDiv(1, params.flip).append(domFinder.getIconImage(command.player1.profile_url));
+      domFinder.getPlayerImageDiv(1, params.flip).append(domFinder.getIconImage(command.player1.profile_url, command.player1.character));
       domFinder.getPlayerInfoDiv(1, params.flip).append(command.player1.name);
-      domFinder.getPlayerImageDiv(2, params.flip).append(domFinder.getIconImage(command.player2.profile_url));
+      domFinder.getPlayerImageDiv(2, params.flip).append(domFinder.getIconImage(command.player2.profile_url, command.player2.character));
       return domFinder.getPlayerInfoDiv(2, params.flip).append(command.player2.name);
     });
     redrawKoma = function(arg) {
@@ -1358,9 +1358,13 @@
         }
       }
     },
-    getIconImage: function(url) {
+    getIconImage: function(url, character) {
+      var str;
       if (url) {
         return $("<img src='" + url + "'>");
+      } else if (character) {
+        str = ("0000" + character).slice(-4);
+        return $("<img src='./images/icon/snap" + str + ".png'>");
       } else {
         return $("<img src='./images/icon/noname.jpeg'>");
       }
@@ -1487,6 +1491,59 @@
       if (name !== "koma" && name !== "foul" && name !== "start") {
         return playSound(name);
       }
+    });
+  });
+
+  node.connect({
+    name: "pagingApi"
+  }, function(pagingApiSocket) {
+    pagingApiSocket.on("pagingApi.login", function(arg) {
+      $("#lobby-login").show();
+      $("#chatDiv").slideDown(500);
+      $("#messages").append($('<li>').addClass('system-info').text("（サーバーに接続しました。）"));
+      $("#messages").append($('<li>').addClass('system-info').text("（これはチャット機能です。下のフォームから送信した内容は、接続している全てのユーザーに発信されます。）"));
+      $("#lobby-logout").hide();
+      $("#account-icon").empty();
+      $("#account-icon").append(domFinder.getIconImage(arg.account.profile_url, arg.account.character));
+      $("#account-name").empty();
+      return $("#account-name").append("\"" + arg.account.name + "\" さん ごきげんよう");
+    });
+    pagingApiSocket.on("pagingApi.logout", function() {
+      $("#messages").append($('<li>').addClass('system-info').text("（サーバーとの接続が切れました。）"));
+      showModal(["サーバーとの接続が切れました。"], {
+        ok: true
+      });
+      return graphicApi.afterHideModal = function() {
+        $("#lobby-menu").hide();
+        $("#lobby").show();
+        $("#lobby-watch").show();
+        $("#game").hide();
+        $("#room").hide();
+        $("#lobby-logout").show();
+        return $("#lobby-login").hide();
+      };
+    });
+    pagingApiSocket.on("pagingApi.game", function(arg) {
+      $("#game").show();
+      $("#room").show();
+      $("#resignButton").show();
+      $("#lobby").hide();
+      graphicApi.afterHideModal = void 0;
+      gTemp.node.emit("graphicApi.hideModal");
+      gTemp.node.emit("gameApi.startGame", arg);
+      if (arg.playerNumber === 2) {
+        gTemp.node.emit("graphicApi.flipBord", true);
+      } else {
+        gTemp.node.emit("graphicApi.flipBord", false);
+      }
+      return gTemp.node.emit("graphicApi.setPlayerInfo", arg.account);
+    });
+    return pagingApiSocket.on("pagingApi.exitRoom", function(arg) {
+      $("#lobby-menu").hide();
+      $("#lobby").show();
+      $("#lobby-watch").show();
+      $("#game").hide();
+      return $("#room").hide();
     });
   });
 

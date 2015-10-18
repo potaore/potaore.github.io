@@ -554,10 +554,10 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
     domFinder.getPlayerInfoDiv(1, params.flip).empty()
     domFinder.getPlayerInfoDiv(2, params.flip).empty()
 
-    domFinder.getPlayerImageDiv(1, params.flip).append( domFinder.getIconImage( command.player1.profile_url ) )
+    domFinder.getPlayerImageDiv(1, params.flip).append( domFinder.getIconImage( command.player1.profile_url, command.player1.character ) )
     domFinder.getPlayerInfoDiv(1, params.flip).append( command.player1.name )
 
-    domFinder.getPlayerImageDiv(2, params.flip).append( domFinder.getIconImage( command.player2.profile_url ) )
+    domFinder.getPlayerImageDiv(2, params.flip).append( domFinder.getIconImage( command.player2.profile_url, command.player2.character ) )
     domFinder.getPlayerInfoDiv(2, params.flip).append( command.player2.name )
   )
 
@@ -752,9 +752,12 @@ domFinder =
         $("<img class='koma' src='./images/koma/60x64/#{images.koma1[koma.komaType]}'>")
       else 
         $("<img class='koma' src='./images/koma/60x64/#{images.koma2[koma.komaType]}'>")
-  getIconImage : (url) ->
+  getIconImage : (url, character) ->
       if url
         $("<img src='#{url}'>")
+      else if character
+        str = ("0000"+character).slice(-4)
+        $("<img src='./images/icon/snap#{str}.png'>")
       else 
         $("<img src='./images/icon/noname.jpeg'>")
 
@@ -843,3 +846,53 @@ node.connect({name : "soundApi"}, (soundApiSocket) ->
   )
 )
 
+node.connect( {name : "pagingApi"}, (pagingApiSocket) -> 
+
+  pagingApiSocket.on( "pagingApi.login", (arg) ->
+    $("#lobby-login").show()
+    $("#chatDiv").slideDown(500)
+    $("#messages").append($('<li>').addClass('system-info').text("（サーバーに接続しました。）"))
+    $("#messages").append($('<li>').addClass('system-info').text("（これはチャット機能です。下のフォームから送信した内容は、接続している全てのユーザーに発信されます。）"))
+    $("#lobby-logout").hide()
+    $("#account-icon").empty()
+    $("#account-icon").append(domFinder.getIconImage(arg.account.profile_url, arg.account.character))
+    $("#account-name").empty()
+    $("#account-name").append("\"#{arg.account.name}\" さん ごきげんよう")
+  )
+
+  pagingApiSocket.on( "pagingApi.logout", ->
+    $("#messages").append($('<li>').addClass('system-info').text("（サーバーとの接続が切れました。）"))
+    showModal(["サーバーとの接続が切れました。"], { ok : true })
+    graphicApi.afterHideModal = () ->
+      $("#lobby-menu").hide()
+      $("#lobby").show()
+      $("#lobby-watch").show()
+      $("#game").hide()
+      $("#room").hide()
+      $("#lobby-logout").show()
+      $("#lobby-login").hide()
+  )
+
+  pagingApiSocket.on( "pagingApi.game", (arg) ->
+      $("#game").show()
+      $("#room").show()
+      $("#resignButton").show()
+      $("#lobby").hide()
+      graphicApi.afterHideModal = undefined
+      gTemp.node.emit( "graphicApi.hideModal" )
+      gTemp.node.emit( "gameApi.startGame", arg )
+      if( arg.playerNumber is 2 )
+        gTemp.node.emit( "graphicApi.flipBord", true )
+      else
+        gTemp.node.emit( "graphicApi.flipBord", false )
+      gTemp.node.emit( "graphicApi.setPlayerInfo", arg.account )
+  )
+
+  pagingApiSocket.on( "pagingApi.exitRoom", (arg) ->
+      $("#lobby-menu").hide();
+      $("#lobby").show();
+      $("#lobby-watch").show();
+      $("#game").hide();
+      $("#room").hide();
+  )
+)
