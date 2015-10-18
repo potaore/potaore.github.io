@@ -19,6 +19,7 @@ class Node
   g$emitter : (socketGuard) -> 
     emit : (name, arg, cont) => 
       console.log "emit : #{name}"
+      console.log arg
       _( _( _(@sockets).values() ).filter(socketGuard) ).each( (socket) -> 
         result = socket.fire(name, arg)
         cont?(result)
@@ -26,6 +27,7 @@ class Node
 
   emit : (name, arg, cont) ->
     console.log "emit : #{name}"
+    console.log arg
     _( _(@sockets).values() ).each( (socket) ->
       result = socket.fire(name, arg) 
       cont?(result)
@@ -208,9 +210,9 @@ km1 = (komaType) -> new Koma(1, komaType)
 km2 = (komaType) -> new Koma(2, komaType)
 
 class Board
-  constructor : () ->
-    @player1 = { life: 9, time : 600000 }
-    @player2 = { life: 9, time : 600000 }
+  constructor : (player1, player2) ->
+    @player1 = player1
+    @player2 = player2
     @komaDai = [[], []]
     @board = [[], [], [], [], [], [], [], [], []]
     @life = [9, 9]
@@ -337,8 +339,8 @@ class Board
     return if ou[0] then ou[0] else null
 
 class Game
-  constructor : (@playerNumber) ->
-    @board = new Board()
+  constructor : (@playerNumber, @player1, @player2) ->
+    @board = new Board(@player1, @player2)
     @board.initBoard(@playerNumber)
     @updateGameInfo = ->
 
@@ -379,10 +381,10 @@ class Game
   getCurrentPlayer : => if @turn%2 is 1 then @board.player1 else @board.player2
 
 class KifuPlayer
-  constructor : (@kifu, @playerNumber, @refresh) ->
+  constructor : (@kifu, @playerNumber, @refresh, @player1, @player2) ->
     @index = 0
     @currentTime = Date.now()
-    @board = new Board()
+    @board = new Board(player1, player2)
     @board.initBoard()
     @boards = []
     @elapsedTime = 0
@@ -471,9 +473,10 @@ class KifuPlayer
 game = null
 
 node.connect({name : "gameApi"}, (gameApiSocket) -> 
-  gameApiSocket.on( "gameApi.startGame", ( playerNumber ) ->
+  gameApiSocket.on( "gameApi.startGame", ( arg ) ->
     gameApiSocket.broadcast.emit( "graphicApi.clearTable" )
-    game = new Game(playerNumber)
+    gameApiSocket.broadcast.emit( "soundApi.playStartSound" )
+    game = new Game( arg.playerNumber, arg.playerInfo.player1, arg.playerInfo.player2 )
     game.start()
     gameApiSocket.broadcast.emit( "graphicApi.redrawKoma", game )
   )
@@ -540,8 +543,22 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
   graphicApiSocket.on( "graphicApi.updateGameInfo", (command) ->
     domFinder.getGameInfoDiv(1, params.flip).empty()
     domFinder.getGameInfoDiv(2, params.flip).empty()
-    domFinder.getGameInfoDiv(1, params.flip).append( $( "<span>" + "▲ 時間："+computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life + "</span>") )
-    domFinder.getGameInfoDiv(2, params.flip).append( $( "<span>" + "△ 時間："+computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life + "</span>") )
+
+    domFinder.getGameInfoDiv(1, params.flip).append( "▲ 時間："+computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life )
+    domFinder.getGameInfoDiv(2, params.flip).append( "△ 時間："+computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life )
+  )
+
+  graphicApiSocket.on( "graphicApi.setPlayerInfo", (command) ->
+    domFinder.getPlayerImageDiv(1, params.flip).empty()
+    domFinder.getPlayerImageDiv(2, params.flip).empty()
+    domFinder.getPlayerInfoDiv(1, params.flip).empty()
+    domFinder.getPlayerInfoDiv(2, params.flip).empty()
+
+    domFinder.getPlayerImageDiv(1, params.flip).append( domFinder.getIconImage( command.player1.profile_url ) )
+    domFinder.getPlayerInfoDiv(1, params.flip).append( command.player1.name )
+
+    domFinder.getPlayerImageDiv(2, params.flip).append( domFinder.getIconImage( command.player2.profile_url ) )
+    domFinder.getPlayerInfoDiv(2, params.flip).append( command.player2.name )
   )
 
   redrawKoma = (arg) ->
@@ -620,9 +637,9 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
               $("#modal-overlay").hide()
               $("#nariDiv").hide()
               moveInfo.to.komaType = komaTypes[moveInfo.to.komaType].nariId if nari
-              node.emit( "gameApi.tryMoveKoma", moveInfo )
+              graphicApiSocket.broadcast.emit( "gameApi.tryMoveKoma", moveInfo )
             return
-          node.emit( "gameApi.tryMoveKoma", moveInfo )
+          graphicApiSocket.broadcast.emit( "gameApi.tryMoveKoma", moveInfo )
         )
       )()
     )
@@ -644,7 +661,7 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
           to   :
             position : pos
             komaType : komaType
-        td.bind("click", -> node.emit( "gameApi.tryPutKoma", moveInfo ))
+        td.bind("click", -> graphicApiSocket.broadcast.emit( "gameApi.tryPutKoma", moveInfo ))
       )()
     )
 
@@ -704,9 +721,19 @@ domFinder =
 
   getGameInfoDiv : (playerNumber, flip) -> 
     if flip
-      return $('#gameInfo'+( if playerNumber is 1 then "2" else "1"))
+      return $('#gameinfostr'+( if playerNumber is 1 then "2" else "1"))
     else
-      return $('#gameInfo'+( if playerNumber is 1 then "1" else "2"))
+      return $('#gameinfostr'+( if playerNumber is 1 then "1" else "2"))
+  getPlayerImageDiv : (playerNumber, flip) -> 
+    if flip
+      return $('#playerimage'+( if playerNumber is 1 then "2" else "1"))
+    else
+      return $('#playerimage'+( if playerNumber is 1 then "1" else "2"))
+  getPlayerInfoDiv : (playerNumber, flip) -> 
+    if flip
+      return $('#playerinfo'+( if playerNumber is 1 then "2" else "1"))
+    else
+      return $('#playerinfo'+( if playerNumber is 1 then "1" else "2"))
 
   getCell : (pos, flip) -> 
     if flip 
@@ -725,12 +752,16 @@ domFinder =
         $("<img class='koma' src='./images/koma/60x64/#{images.koma1[koma.komaType]}'>")
       else 
         $("<img class='koma' src='./images/koma/60x64/#{images.koma2[koma.komaType]}'>")
-
+  getIconImage : (url) ->
+      if url
+        $("<img src='#{url}'>")
+      else 
+        $("<img src='./images/icon/noname.jpeg'>")
 
 
 node.connect({name : "kifuApi"}, (kifuApiSocket) -> 
 
-  kifuApiSocket.on( "kifuApi.replayKifu", (kifu) ->
+  kifuApiSocket.on( "kifuApi.replayKifu", (arg) ->
     kifuApi.state = "replay"
     $('#kifuSelectBox').empty()
     $("#kifuInfoDiv").show()
@@ -749,7 +780,7 @@ node.connect({name : "kifuApi"}, (kifuApiSocket) ->
       $('#nextButton').prop('disabled', kifuLength is index )
       $('#toEndButton').prop('disabled', kifuLength is index )
 
-    kifuApi.kifuPlayer = new KifuPlayer( kifu, 1, refresh )
+    kifuApi.kifuPlayer = new KifuPlayer( arg.kifu, 1, refresh, arg.playerInfo.player1, arg.playerInfo.player2 )
     kifuApi.kifuPlayer.activateUpdateTimer()
     node.emit( "graphicApi.redrawKoma", { board : kifuApi.kifuPlayer.getCurrentBoard(), turn : 1 , state :"replay" } )
     index = 0
@@ -762,7 +793,7 @@ node.connect({name : "kifuApi"}, (kifuApiSocket) ->
     option = $("<option value='#{index}'>対局開始</option>")
     index++
     $("#kifuSelectBox").append(option)
-    _( kifu ).each( (te) ->
+    _( arg.kifu ).each( (te) ->
       if te.info.type is "moveKoma"
         if not te.foul
           value = "#{te.turn} : " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
@@ -803,7 +834,12 @@ node.connect({name : "kifuApi"}, (kifuApiSocket) ->
 )
 
 node.connect({name : "soundApi"}, (soundApiSocket) -> 
-  soundApiSocket.on( "soundApi.playKomaSound", () -> playSound("koma") )
-  soundApiSocket.on( "soundApi.playFoulSound", () -> playSound("foul") )
+  soundApiSocket.on( "soundApi.playStartSound", () -> playSound("start") )
+  soundApiSocket.on( "soundApi.playKomaSound",  () -> playSound("koma") )
+  soundApiSocket.on( "soundApi.playFoulSound",  () -> playSound("foul") )
+  soundApiSocket.on( "soundApi.playSound",  (name) -> 
+    if name isnt "koma" and name isnt "foul" and name isnt "start"
+      playSound(name)
+  )
 )
 

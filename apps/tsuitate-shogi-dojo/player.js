@@ -53,6 +53,7 @@
         emit: (function(_this) {
           return function(name, arg, cont) {
             console.log("emit : " + name);
+            console.log(arg);
             return _(_(_(_this.sockets).values()).filter(socketGuard)).each(function(socket) {
               var result;
               result = socket.fire(name, arg);
@@ -65,6 +66,7 @@
 
     Node.prototype.emit = function(name, arg, cont) {
       console.log("emit : " + name);
+      console.log(arg);
       return _(_(this.sockets).values()).each(function(socket) {
         var result;
         result = socket.fire(name, arg);
@@ -567,7 +569,7 @@
   };
 
   Board = (function() {
-    function Board() {
+    function Board(player1, player2) {
       this.getOu = __bind(this.getOu, this);
       this.getPlayerKoma = __bind(this.getPlayerKoma, this);
       this.getKomaWithPosition = __bind(this.getKomaWithPosition, this);
@@ -575,14 +577,8 @@
       this.removeKoma = __bind(this.removeKoma, this);
       this.putKoma = __bind(this.putKoma, this);
       this.duplicate = __bind(this.duplicate, this);
-      this.player1 = {
-        life: 9,
-        time: 600000
-      };
-      this.player2 = {
-        life: 9,
-        time: 600000
-      };
+      this.player1 = player1;
+      this.player2 = player2;
       this.komaDai = [[], []];
       this.board = [[], [], [], [], [], [], [], [], []];
       this.life = [9, 9];
@@ -747,12 +743,14 @@
   })();
 
   Game = (function() {
-    function Game(playerNumber) {
+    function Game(playerNumber, player1, player2) {
       this.playerNumber = playerNumber;
+      this.player1 = player1;
+      this.player2 = player2;
       this.getCurrentPlayer = __bind(this.getCurrentPlayer, this);
       this.start = __bind(this.start, this);
       this.getPlayerInfoCommand = __bind(this.getPlayerInfoCommand, this);
-      this.board = new Board();
+      this.board = new Board(this.player1, this.player2);
       this.board.initBoard(this.playerNumber);
       this.updateGameInfo = function() {};
     }
@@ -818,15 +816,17 @@
   })();
 
   KifuPlayer = (function() {
-    function KifuPlayer(kifu, playerNumber, refresh) {
+    function KifuPlayer(kifu, playerNumber, refresh, player1, player2) {
       var currentBoard;
       this.kifu = kifu;
       this.playerNumber = playerNumber;
       this.refresh = refresh;
+      this.player1 = player1;
+      this.player2 = player2;
       this.getPlayerInfo = __bind(this.getPlayerInfo, this);
       this.index = 0;
       this.currentTime = Date.now();
-      this.board = new Board();
+      this.board = new Board(player1, player2);
       this.board.initBoard();
       this.boards = [];
       this.elapsedTime = 0;
@@ -969,9 +969,10 @@
   node.connect({
     name: "gameApi"
   }, function(gameApiSocket) {
-    gameApiSocket.on("gameApi.startGame", function(playerNumber) {
+    gameApiSocket.on("gameApi.startGame", function(arg) {
       gameApiSocket.broadcast.emit("graphicApi.clearTable");
-      game = new Game(playerNumber);
+      gameApiSocket.broadcast.emit("soundApi.playStartSound");
+      game = new Game(arg.playerNumber, arg.playerInfo.player1, arg.playerInfo.player2);
       game.start();
       return gameApiSocket.broadcast.emit("graphicApi.redrawKoma", game);
     });
@@ -1039,8 +1040,18 @@
     graphicApiSocket.on("graphicApi.updateGameInfo", function(command) {
       domFinder.getGameInfoDiv(1, params.flip).empty();
       domFinder.getGameInfoDiv(2, params.flip).empty();
-      domFinder.getGameInfoDiv(1, params.flip).append($("<span>" + "▲ 時間：" + computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life + "</span>"));
-      return domFinder.getGameInfoDiv(2, params.flip).append($("<span>" + "△ 時間：" + computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life + "</span>"));
+      domFinder.getGameInfoDiv(1, params.flip).append("▲ 時間：" + computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life);
+      return domFinder.getGameInfoDiv(2, params.flip).append("△ 時間：" + computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life);
+    });
+    graphicApiSocket.on("graphicApi.setPlayerInfo", function(command) {
+      domFinder.getPlayerImageDiv(1, params.flip).empty();
+      domFinder.getPlayerImageDiv(2, params.flip).empty();
+      domFinder.getPlayerInfoDiv(1, params.flip).empty();
+      domFinder.getPlayerInfoDiv(2, params.flip).empty();
+      domFinder.getPlayerImageDiv(1, params.flip).append(domFinder.getIconImage(command.player1.profile_url));
+      domFinder.getPlayerInfoDiv(1, params.flip).append(command.player1.name);
+      domFinder.getPlayerImageDiv(2, params.flip).append(domFinder.getIconImage(command.player2.profile_url));
+      return domFinder.getPlayerInfoDiv(2, params.flip).append(command.player2.name);
     });
     redrawKoma = function(arg) {
       var image, koma, komadai1, komadai2, td, tmp, x, xx, y, yy, _i, _results;
@@ -1184,11 +1195,11 @@
                 if (nari) {
                   moveInfo.to.komaType = komaTypes[moveInfo.to.komaType].nariId;
                 }
-                return node.emit("gameApi.tryMoveKoma", moveInfo);
+                return graphicApiSocket.broadcast.emit("gameApi.tryMoveKoma", moveInfo);
               };
               return;
             }
-            return node.emit("gameApi.tryMoveKoma", moveInfo);
+            return graphicApiSocket.broadcast.emit("gameApi.tryMoveKoma", moveInfo);
           });
         })();
       });
@@ -1225,7 +1236,7 @@
             }
           };
           return td.bind("click", function() {
-            return node.emit("gameApi.tryPutKoma", moveInfo);
+            return graphicApiSocket.broadcast.emit("gameApi.tryPutKoma", moveInfo);
           });
         })();
       });
@@ -1306,9 +1317,23 @@
     },
     getGameInfoDiv: function(playerNumber, flip) {
       if (flip) {
-        return $('#gameInfo' + (playerNumber === 1 ? "2" : "1"));
+        return $('#gameinfostr' + (playerNumber === 1 ? "2" : "1"));
       } else {
-        return $('#gameInfo' + (playerNumber === 1 ? "1" : "2"));
+        return $('#gameinfostr' + (playerNumber === 1 ? "1" : "2"));
+      }
+    },
+    getPlayerImageDiv: function(playerNumber, flip) {
+      if (flip) {
+        return $('#playerimage' + (playerNumber === 1 ? "2" : "1"));
+      } else {
+        return $('#playerimage' + (playerNumber === 1 ? "1" : "2"));
+      }
+    },
+    getPlayerInfoDiv: function(playerNumber, flip) {
+      if (flip) {
+        return $('#playerinfo' + (playerNumber === 1 ? "2" : "1"));
+      } else {
+        return $('#playerinfo' + (playerNumber === 1 ? "1" : "2"));
       }
     },
     getCell: function(pos, flip) {
@@ -1332,13 +1357,20 @@
           return $("<img class='koma' src='./images/koma/60x64/" + images.koma2[koma.komaType] + "'>");
         }
       }
+    },
+    getIconImage: function(url) {
+      if (url) {
+        return $("<img src='" + url + "'>");
+      } else {
+        return $("<img src='./images/icon/noname.jpeg'>");
+      }
     }
   };
 
   node.connect({
     name: "kifuApi"
   }, function(kifuApiSocket) {
-    kifuApiSocket.on("kifuApi.replayKifu", function(kifu) {
+    kifuApiSocket.on("kifuApi.replayKifu", function(arg) {
       var index, option, refresh;
       kifuApi.state = "replay";
       $('#kifuSelectBox').empty();
@@ -1367,7 +1399,7 @@
         $('#nextButton').prop('disabled', kifuLength === index);
         return $('#toEndButton').prop('disabled', kifuLength === index);
       };
-      kifuApi.kifuPlayer = new KifuPlayer(kifu, 1, refresh);
+      kifuApi.kifuPlayer = new KifuPlayer(arg.kifu, 1, refresh, arg.playerInfo.player1, arg.playerInfo.player2);
       kifuApi.kifuPlayer.activateUpdateTimer();
       node.emit("graphicApi.redrawKoma", {
         board: kifuApi.kifuPlayer.getCurrentBoard(),
@@ -1383,7 +1415,7 @@
       option = $("<option value='" + index + "'>対局開始</option>");
       index++;
       $("#kifuSelectBox").append(option);
-      return _(kifu).each(function(te) {
+      return _(arg.kifu).each(function(te) {
         var value;
         if (te.info.type === "moveKoma") {
           if (!te.foul) {
@@ -1442,11 +1474,19 @@
   node.connect({
     name: "soundApi"
   }, function(soundApiSocket) {
+    soundApiSocket.on("soundApi.playStartSound", function() {
+      return playSound("start");
+    });
     soundApiSocket.on("soundApi.playKomaSound", function() {
       return playSound("koma");
     });
-    return soundApiSocket.on("soundApi.playFoulSound", function() {
+    soundApiSocket.on("soundApi.playFoulSound", function() {
       return playSound("foul");
+    });
+    return soundApiSocket.on("soundApi.playSound", function(name) {
+      if (name !== "koma" && name !== "foul" && name !== "start") {
+        return playSound(name);
+      }
     });
   });
 

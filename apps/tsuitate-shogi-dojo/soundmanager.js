@@ -1,8 +1,13 @@
 
 var komaOto = null;
 var soundsDefs = [
-  { name : "koma", source : "./sound/japanese-chess-piece1.mp3" },
-  { name : "foul", source : "./sound/cancel2.mp3" }
+  { name : "koma"                , system : true  , source : "./sound/japanese-chess-piece1.mp3" },
+  { name : "foul"                , system : true  , source : "./sound/cancel2.mp3" },
+  { name : "start"               , system : true  , source : "./sound/drum-japanese1.mp3" },
+  { name : "拍手1"               , system : false , source : "./sound/clapping-hands1.mp3" },
+  { name : "拍手2"               , system : false , source : "./sound/clapping-hands2.mp3" },
+  { name : "ドンドンパフパフ"    , system : false , source : "./sound/dondonpafupafu1.mp3" },
+  { name : "ゴング"              , system : false , source : "./sound/gong-played2.mp3" }
 ];
 
 var sounds = {};
