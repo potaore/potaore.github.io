@@ -9,84 +9,77 @@
       var api = {};
       var graphicApi = {};
       var kifuApi = {};
-      var gTemp = {};
-function uuid() {
-  var uuid = "", i, random;
-  for (i = 0; i < 32; i++) {
-    random = Math.random() * 16 | 0;
-
-    if (i == 8 || i == 12 || i == 16 || i == 20) {
-      uuid += "-"
-    }
-    uuid += (i == 12 ? 4 : (i == 16 ? (random & 3 | 8) : random)).toString(16);
-  }
-  return uuid;
-}
     </script>
     <script src="./underscore/underscore-min.js"></script>
     <script src="./jquery/jquery-2.1.4.min.js"></script>
     <script src="./socket.io/socket.io.js"></script>
-    <script src="./player.js"></script>
-    <script src="./soundmanager.js"></script>
+    <script src="./player.js"></script>    
     <script>
-      $(document).ready( function() {
-        loadSounds();
-      });
       var socket = null;
       var getSocket = function () {
         if(socket === null || socket === undefined) {
-          socket = io.connect('http://133.130.72.92:8888');
-          //socket = io.connect('http://localhost:8888');
-
-          socket.on('auth.login-ok', function(arg){ gTemp.node.emit( "pagingApi.login", arg);});
-          socket.on('auth.login-ng', function(arg){ showModal([arg], { ok : true }); });
-          socket.on('disconnect', function(arg){ gTemp.node.emit( "pagingApi.logout", arg); });
-
-          socket.on('message', function(arg){
-            if( arg.type === "system-info" ) {
-              $("#messages").append($('<li>').addClass('system-info').text(arg.message));
-            } else {
-              $("#messages").append($('<li>').text(arg.message));
-              if( arg.message.match( /sound\((.+?)\)/ ) ) {
-                gTemp.node.emit( "soundApi.playSound", RegExp.$1);
-              }
-            }
-            $('#chatMessageDiv').scrollTop($('#messages').height());
-          });
-
-          //connectionInfo
-          socket.on('connectionInfo', function( info ) {
-            $("#connection-info").empty();
-            $("#connection-info").append( $("<span>" + "接続数:" + info.connectionCount + "</span>") );
+          socket = io.connect('http://localhost:8888');
+          socket.on('message', function(msg){
+            console.log(msg);
           });
 
           //lobby api
           socket.on('receivePlayingGames', function(data){
-            $("#table-rooms-body").empty();
+            $("#table-rooms-body").html("");
             _( data.playingGames ).each( function(game) {
               tr = $("<tr>");
               tr.append( $("<td>").append(game.startDateTime) );
               tr.append( $("<td>").append(game.id) );
-              tr.append( $("<td><input type='button' value='対局を観戦する' onClick='watch(\""+game.id+"\");' /></td>") );
+              tr.append( $("<td><input type='button' value='対局を観戦する' onClick='watch()' /></td>") );
               $("#table-rooms-body").append(tr);
             });
           });
 
           //player api
-          socket.on('noticePlayerNumber', function(arg){ gTemp.node.emit( "pagingApi.game", arg); });
+          socket.on('noticePlayerNumber', function(playerNumber){
+            $("#game").show();
+            $("#room").show();
+            $("#lobby").hide();
+            gameApi.startGame(playerNumber);
+            console.log("noticePlayerNumber : " + playerNumber);
+            if( playerNumber == 2 ) {
+              graphicApi.flipBord(true);
+            } else {
+              graphicApi.flipBord(false);
+            }
+          });
+          socket.on('moveKoma', function(command){
+            gameApi.moveKoma(command);
+          });
+          socket.on('putKoma', function(command){
+            gameApi.putKoma(command);
+          });
 
-          //socket.on('game', function(command){ gameApi.putKoma(command); });
+          socket.on('game', function(command){
+            gameApi.putKoma(command);
+          });
 
           socket.on('gameMessage', function(message) {
             if (message.type == "plain") {
-              $("#gameMessageArea").empty();
+              $("#gameMessageArea").html("");
               _(message.texts).each(function(text) {
                 $("#gameMessageArea").append($('<li>').text(text));
               });
               $("#gameMessageArea").hide();
               $("#gameMessageArea").show(200);
             } else if (message.type == "modal") {
-              showModal(message.texts, { ok : true });
+              $("#gameMessageArea").html("");
+              $("#modal-message").html("");
+              $("#modal-window").show()
+              $("#modal-overlay").show()
+              $("#modal-window").css( { "background-color": "#FFFFFF", "opacity" : 0 } )
+              $("#modal-overlay").css( { "background-color": "#000000", "opacity" : 0 } )
+              $("#modal-window").animate( { "background-color": "#FFFFFF", "opacity" : 0.95 }, 120 )
+              $("#modal-overlay").animate( { "background-color": "#000000", "opacity" : 0.3 }, 120 )
+              _(message.texts).each(function(text) {
+                $("#gameMessageArea").append($('<li>').text(text));
+                $("#modal-message").append($('<div>').text(text));
+              });
             }
 
             if(message.error) {
@@ -95,71 +88,45 @@ function uuid() {
           });
 
           socket.on('command', function(command){
-            gTemp.node.emit( "gameApi.doCommand", command );
+            console.log("command : " + command);
+            gameApi.doCommand(command);
           });
-          socket.on('endGame', function( arg ) {
+          socket.on('endGame', function( info ) {
             $("#game").show();
             $("#room").show();
             $("#roomWatchMenu").show();
-            $("#resignButton").hide();
-            gTemp.node.emit( "gameApi.endGame", arg );
-            gTemp.node.emit( "kifuApi.replayKifu", arg);
-            gTemp.node.emit( "kifuApi.toEnd" );
+            gameApi.endGame(info);
+            kifuApi.replayKifu(info.kifu);
+            kifuApi.toEnd();
           });
 
           //watcher api
-          socket.on('kifu', function( arg ) {
+          socket.on('kifu', function( info ) {
             $("#game").show();
             $("#room").show();
-            $("#resignButton").hide();
             $("#room-watch-menu").show();
-            gTemp.node.emit( "graphicApi.setPlayerInfo", arg.kifu.account );
-            gTemp.node.emit( "kifuApi.replayKifu", arg.kifu);
-            gTemp.node.emit( "kifuApi.toEnd" );
-            gTemp.node.emit( "kifuApi.setElapsedTime", arg.elapsedTime );
+            kifuApi.replayKifu(info.kifu);
+            kifuApi.toEnd();
           });
-          socket.on('distributeKifu', function( arg ) {
-            gTemp.node.emit( "kifuApi.addKifu", arg.te);
-            gTemp.node.emit( "kifuApi.toEnd" );
+          socket.on('distributeKifu', function( info ) {
+            kifuApi.addKifu(info.te);
+            kifuApi.toEnd();
           });
         }
-
-        $('form').unbind('submit');
-        $('form').submit(function(){
-          if( $('#m').val() ) {          
-            socket.emit('message', $('#m').val());
-            $('#m').val('');
-          }
-          return false;
-        });
-
         return socket;
       }
-
-
-
       var start = function() {
         socket = getSocket();
         socket.emit('room', { method : "startGame"} ); 
-        $("#gameMessageArea").empty();
         $("#roomWatchMenu").hide();
-        $('#kifuSelectBox').empty();
+        $('#kifuSelectBox').html("");
         $("#kifuInfoDiv").hide();
         $("#kifuReplayDiv").hide();
-        graphicApi.afterHideModal = function() { exitRoom(); };
-        showModal(["対戦相手を待っています。"], { cancel : true});
       };
-
-      var resign = function () {
+      var watch= function() {
         socket = getSocket();
-        socket.emit('game', { method : "resign"} ); 
-      }
-
-      var watch= function(gameId) {
-        socket = getSocket();
-        gTemp.node.emit( "graphicApi.clearTable" );
-        socket.emit('room',  { method : "watch", gameId : gameId } );
-        $("#gameMessageArea").empty();
+        graphicApi.clearTable();
+        socket.emit('room',  { method : "watch" } );
         $("#lobby").hide();
         $("#roomWatchMenu").show();
       };
@@ -169,20 +136,19 @@ function uuid() {
         socket.emit('getPlayingGames', ""); 
       }
       var exitRoom = function() {
-        gTemp.node.emit( "pagingApi.exitRoom" );
+        $("#lobby-menu").hide();
+        $("#lobby").show();
+        $("#lobby-watch").show();
+        $("#game").hide();
+        $("#room").hide();
         
         socket.emit('room', { method : "exitRoom" } ); 
-        socket.emit('getPlayingGames', "");
-        gTemp.node.emit( "kifuApi.stop" );
+        socket.emit('getPlayingGames', ""); 
       }
-      var connect = function(type) {
+      var connect = function() {
         socket = getSocket();
-        //{auth : '99582607:49985c25'}
-        if (type === "account") {
-          socket.emit( 'auth.login', { auth : $("#loginstr").val() } );
-        } else {
-          socket.emit( 'auth.guestlogin', { name : $("#loginstr").val() } );
-        }
+        $("#lobby-login").show();
+        $("#lobby-logout").hide();
       }
 
       var showLobby = function() {
@@ -194,49 +160,17 @@ function uuid() {
         $("#roomWatchMenu").hide();
         $("#lobby-watch").hide();
       }
-
-      var showModal = function(texts, option) {
-        if( option.ok ) {
-          $("#modalConfirmButton").show();
-        } else {
-          $("#modalConfirmButton").hide();
-        }
-        if( option.cancel ) {
-          $("#modalCancelButton").show();
-        } else {
-          $("#modalCancelButton").hide();
-        }
-        $("#gameMessageArea").empty();
-        $("#modal-message").empty();
-        $("#modal-window").show();
-        $("#modal-overlay").show();
-        $("#modal-window").css( { "background-color": "#FFFFFF", "opacity" : 0 } );
-        $("#modal-overlay").css( { "background-color": "#000000", "opacity" : 0 } );
-        $("#modal-window").animate( { "background-color": "#FFFFFF", "opacity" : 0.95 }, 120 );
-        $("#modal-overlay").animate( { "background-color": "#000000", "opacity" : 0.3 }, 120 );
-        _(texts).each(function(text) {
-          $("#gameMessageArea").append($('<li>').text(text));
-          $("#modal-message").append($('<div>').text(text));
-        });
-      };
     </script>
   </head>
   <body>
     <div id='title'>
-      <div id='title-inner'>ついたて将棋道場</div>
-      <a id="helpbutton" href="./tsuitate-help.html" target="_brank">help</a>
-      <div id='account-info' class='infomation'>
-        <div id='account-icon' class='infomation'></div>
-        <div id='account-name' class='infomation'></div>
-      </div>
-      <div id='connection-info' ></div>
+      <div id='title-inner'><h1>ついたて将棋道場</h1></div>
     </div>
     <div>
       <div id='lobby'>
         <div id='lobby-logout'>
-          <input id='loginstr' type='text' class='menu-textbox' maxlength="20" placeholder="認証文字列またはゲストログイン名" />
-          <input id='loginbutton' type='button' class='menu-button' value='ログイン' onClick='connect("account")' />
-          <input id='guestloginbutton' type='button' class='menu-button' value='ゲストログイン' onClick='connect("guest")' />
+          <input type='button' class='menu-button' value='接続' onClick='connect()' />
+          <input type='button' class='menu-button' value='help' onClick='' />
         </div>
         <div id='lobby-login'>
           <div id='lobby-menu'>
@@ -262,66 +196,41 @@ function uuid() {
       </div>
       <div id="room">
         <div id='roomWatchMenu'>
-          <input type='button' value='退室する' class='menu-button' onClick='exitRoom()' />
+          <input type='button' value='退室する' onClick='exitRoom()' />
         </div>
         <div id="game" class="game">
           <div id="komadai2" class="komadai"></div>
-          <div class="gameInfo" id="gameInfo2">
-            <div id="playerimage2" style="float:left;">
-
-            </div>
-            <div style="float:left;">
-              <div id="gameinfostr2"></div>
-              <div id="playerinfo2"></div>
-            </div>
-          </div>
-          <input type='button' id='resignButton'    class='confirm-button' value='投了' onClick='resign();' />
+          <div id="gameInfo2" class="gameInfo"></div>
           <div id="board"></div>
           <img id="boardImg" class='board' src='./images/board/japanese-chess-b02.jpg'>
-          <div id="gameInfo1" class="gameInfo">
-            <div id="playerimage1" style="float:left;">
-
-            </div>
-            <div style="float:left;">
-              <div id="playerinfo1"></div>
-              <div id="gameinfostr1"></div>
-            </div>
-          </div>
+          <div id="gameInfo1" class="gameInfo"></div>
           <div id="komadai1" class="komadai"></div>
           <div id="kifuInfoDiv" >
-            <select size="16" id="kifuSelectBox"></select>
+            <select size="19" id="kifuSelectBox"></select>
           </div>
           <div id="kifuReplayDiv">
-            <input type='button' id='toStartButton' class='control-button' value='←←' onClick='gTemp.node.emit( "kifuApi.toStart" );' />
-            <input type='button' id='backButton'    class='control-button' value='←'   onClick='gTemp.node.emit( "kifuApi.back" );' />
-            <input type='button' id='nextButton'    class='control-button' value='→'   onClick='gTemp.node.emit( "kifuApi.next" );' />
-            <input type='button' id='toEndButton'   class='control-button' value='→→' onClick='gTemp.node.emit( "kifuApi.toEnd" );' />
+            <input type='button' id='toStartButton' class='control-button' value='←←' onClick='kifuApi.toStart();' />
+            <input type='button' id='backButton'    class='control-button' value='←'   onClick='kifuApi.back();' />
+            <input type='button' id='nextButton'    class='control-button' value='→'   onClick='kifuApi.next();' />
+            <input type='button' id='toEndButton'   class='control-button' value='→→' onClick='kifuApi.toEnd();' />
           </div>
           <div id="gameMessageAreaDiv" class="gameMessage"><ui id="gameMessageArea"></ui></div>
+        </div>
+        <div id="messagesDiv">
+          <ul id="messages"></ul>
         </div>
 
         <div id="nariDiv" class="modal-window">
           <div>成りますか？</div>
-          <input type='button' id='nariButton'    class='confirm-button' value='成'   onClick='gTemp.node.emit( "graphicApi.nari", true );' />
-          <input type='button' id='notNariButton' class='confirm-button' value='不成' onClick='gTemp.node.emit( "graphicApi.nari", false );' />
+          <input type='button' id='nariButton'    class='confirm-button' value='成'   onClick='graphicApi.nari(true);' />
+          <input type='button' id='notNariButton' class='confirm-button' value='不成' onClick='graphicApi.nari(false);' />
         </div>
-      </div>
-      <div id="modal-window" class="modal-window">
-        <div id="modal-message"></div>
-        <input type='button' id='modalConfirmButton' class='confirm-button' value='OK' onClick='gTemp.node.emit( "graphicApi.hideModal" );' />
-        <input type='button' id='modalCancelButton'  class='confirm-button' value='キャンセル' onClick='gTemp.node.emit( "graphicApi.hideModal" );' />
-      </div>
-      <div id="modal-overlay"></div>
-      </div>
-
-      <div id="chatDiv">
-        
-        <div id="chatMessageDiv">
-          <ul id="messages"></ul>
+        <div id="modal-window" class="modal-window">
+          <div id="modal-message"></div>
+          <input type='button' id='modalConfirmButton' class='confirm-button' value='OK' onClick='graphicApi.hideModal();' />
         </div>
-        <form action="">
-          <input id="m" autocomplete="off" /><button>Send</button>
-        </form>
+        <div id="modal-overlay"></div>
+      </div>
       </div>
   </body>
 </html>
