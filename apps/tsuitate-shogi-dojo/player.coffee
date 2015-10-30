@@ -1,3 +1,49 @@
+listenlist = 
+  "gameApi.getBord" : true
+
+class Socket
+  constructor : (@nodeApi, @params) -> 
+    @id = id = uuid()
+    @events = {}
+    @broadcast = @nodeApi.g$emitter( (socket) -> socket.id isnt id )
+    id  = null
+  on   : (name, func)  -> @events[name] = func
+  fire : (name, arg, cont) -> 
+    if @events[name]
+      ret = @events[name](arg) 
+      cont?(ret)
+  to   : (id) -> @nodeApi.g$emitter( (socket) -> socket.id is id )
+
+class Node
+  constructor : () -> @sockets = {}
+  connect     : (params, cont) -> 
+    socket = new Socket(@, params)
+    @sockets[socket.id] = socket
+    cont(socket)
+
+  g$emitter : (socketGuard) -> 
+    emit : (name, arg, cont) => 
+      if listenlist[name]
+        console.log "emit : #{name}"
+        console.log arg
+        console.log cont
+      _( _( _(@sockets).values() ).filter(socketGuard) ).each( (socket) -> 
+        result = socket.fire(name, arg, cont)
+      )
+
+  emit : (name, arg, cont) ->
+    if listenlist[name]
+      console.log "emit : #{name}"
+      console.log arg
+      console.log cont
+    _( _(@sockets).values() ).each( (socket) ->
+      result = socket.fire(name, arg, cont)
+    )
+
+node = new Node()
+gTemp.node = node 
+
+
 util =
   isVacant : (val) -> val is null or val is undefined or val is "" or val is 0
   isntVacant : (val) -> val isnt null and val isnt undefined and val isnt "" and val isnt 0
@@ -9,8 +55,11 @@ util =
   posMul : (p, times) -> { x : p.x * times, y : p.y * times, length : times }
   posDup : (p) -> { x : p.x , y : p.y, length : p.length}
   posAdd1 : (p) -> { x : p.x + 1 , y : p.y + 1, length : p.length}
+  posFlip : (p, flip) -> if flip then { x: 8 - p.x, y : 8 - p.y } else { x : p.x, y : p.y }
+  posFlipX : (p) -> { x: 8 - p.x, y : p.y }
   posToStr : (p) -> p.x+":"+p.y
   isInRange : (pos) -> 0 <= pos.x and pos.x < 9 and 0 <= pos.y and pos.y < 9
+
   allPos : (predicate) ->
     for y in [0...9]
       for x in [0...9]
@@ -18,9 +67,10 @@ util =
 
 
 computeDuration = (ms) ->
+  ms = 0 if ms < 0
   h = String(Math.floor(ms / 3600000) + 100).substring(1)
   m = String(Math.floor((ms - h * 3600000)/60000)+ 100).substring(1)
-  s = String(Math.round((ms - h * 3600000 - m * 60000)/1000)+ 100).substring(1)
+  s = String(Math.floor((ms - h * 3600000 - m * 60000)/1000)+ 100).substring(1)
   return m+':'+s
 
 class KomaType
@@ -47,37 +97,45 @@ komaTypes = ( ->
   setResource("to", "と"  , false, "hu", ""  , { str : "123468"       , moves : ["1","2","3","4","6","8"]}            , 1)
   _komaTypes)()
 
-images =  
+getimage = (name) -> 
+  image = new Image()
+  image.src = "./images/koma/60x64/#{name}"
+  image.width  = 60
+  image.height = 64
+  image
+
+images2 = 
   koma1 : 
-    "ou" : "sgl01.png"
-    "hi" : "sgl02.png"
-    "ka" : "sgl03.png"  
-    "ki" : "sgl04.png"
-    "gi" : "sgl05.png"
-    "ke" : "sgl06.png"
-    "ky" : "sgl07.png"
-    "hu" : "sgl08.png"
-    "ry" : "sgl12.png"
-    "um" : "sgl13.png"
-    "ng" : "sgl15.png"
-    "nk" : "sgl16.png"
-    "ny" : "sgl17.png"
-    "to" : "sgl18.png"  
+    "ou" : getimage( "sgl01.png" )
+    "hi" : getimage( "sgl02.png" )
+    "ka" : getimage( "sgl03.png" )
+    "ki" : getimage( "sgl04.png" )
+    "gi" : getimage( "sgl05.png" )
+    "ke" : getimage( "sgl06.png" )
+    "ky" : getimage( "sgl07.png" )
+    "hu" : getimage( "sgl08.png" )
+    "ry" : getimage( "sgl12.png" )
+    "um" : getimage( "sgl13.png" )
+    "ng" : getimage( "sgl15.png" )
+    "nk" : getimage( "sgl16.png" )
+    "ny" : getimage( "sgl17.png" )
+    "to" : getimage( "sgl18.png" )
   koma2 :
-    "ou" : "sgl31.png"
-    "hi" : "sgl32.png"
-    "ka" : "sgl33.png"  
-    "ki" : "sgl34.png"
-    "gi" : "sgl35.png"
-    "ke" : "sgl36.png"
-    "ky" : "sgl37.png"
-    "hu" : "sgl38.png"
-    "ry" : "sgl42.png"
-    "um" : "sgl43.png"
-    "ng" : "sgl45.png"
-    "nk" : "sgl46.png"
-    "ny" : "sgl47.png"
-    "to" : "sgl48.png" 
+    "ou" : getimage( "sgl31.png" )
+    "hi" : getimage( "sgl32.png" )
+    "ka" : getimage( "sgl33.png" )
+    "ki" : getimage( "sgl34.png" )
+    "gi" : getimage( "sgl35.png" )
+    "ke" : getimage( "sgl36.png" )
+    "ky" : getimage( "sgl37.png" )
+    "hu" : getimage( "sgl38.png" )
+    "ry" : getimage( "sgl42.png" )
+    "um" : getimage( "sgl43.png" )
+    "ng" : getimage( "sgl45.png" )
+    "nk" : getimage( "sgl46.png" )
+    "ny" : getimage( "sgl47.png" )
+    "to" : getimage( "sgl48.png" )
+
 
 class MoveConvertor
   constructor : ->
@@ -170,7 +228,9 @@ km1 = (komaType) -> new Koma(1, komaType)
 km2 = (komaType) -> new Koma(2, komaType)
 
 class Board
-  constructor : () ->
+  constructor : (player1, player2) ->
+    @player1 = player1
+    @player2 = player2
     @komaDai = [[], []]
     @board = [[], [], [], [], [], [], [], [], []]
     @life = [9, 9]
@@ -228,12 +288,7 @@ class Board
     board.life[1] = @life[1]
     return board
 
-  getKoma : (position) -> 
-    try
-      @board[position.y][position.x]
-    catch e
-      console.log("get:#{position.x}, #{position.y}")
-      throw e
+  getKoma : (position) -> @board[position.y][position.x]
 
   getExistsHuColumn : (playerNumber) ->
     result = {}
@@ -242,7 +297,6 @@ class Board
         koma = @board[y][x]
         if koma and koma.playerNumber is playerNumber and koma.komaType is "hu"
           result[x] = true
-    console.log result
     return result
 
 
@@ -255,7 +309,6 @@ class Board
 
   getKomaFromKomadai : (playerNumber, komaType) ->
     find = false
-    console.log komaType
     index = if playerNumber is 1 then 0 else 1
     koma = _(@komaDai[index]).find((koma) -> koma.komaType is komaType)
     @komaDai[index] = _(@komaDai[index]).filter((koma) -> 
@@ -265,11 +318,9 @@ class Board
     return koma
 
   putKomaToKomadai : (playerNumber, koma) ->
-    console.log "putKomaToKomadai"
     koma = new Koma(koma.playerNumber, koma.komaType)
     koma.playerNumber = playerNumber
     type = komaTypes[koma.komaType]
-    console.log type
     koma.komaType = komaTypes[koma.komaType].resourceId
     if playerNumber is 1
       @komaDai[0].push koma
@@ -279,7 +330,6 @@ class Board
       @komaDai[1] = _(@komaDai[1]).sortBy((koma)->komaTypes[koma.komaType].value)
 
   removeKomaFromKomadai : (playerNumber, komaType) =>
-    console.log("removeKomaFromKomadai : " + playerNumber + " : " + komaType)
     find = false
     index = if playerNumber is 1 then 0 else 1
     koma = _(@komaDai[index]).find((koma) -> koma.komaType is komaType)
@@ -304,27 +354,23 @@ class Board
 
   getOu : (playerNumber) =>
     ou = @getKomaWithPosition( (koma) -> koma.playerNumber is playerNumber and koma.komaType is "ou" )
-    console.log "ouNum:" +ou.length
     return if ou[0] then ou[0] else null
 
 class Game
-  constructor : (@playerNumber) ->
-    @board = new Board()
+  constructor : (@playerNumber, @player1, @player2) ->
+    @board = new Board(@player1, @player2)
     @board.initBoard(@playerNumber)
-    @judge = new SyogiJudgement()
     @updateGameInfo = ->
 
   getPlayerInfoCommand : =>
     return {
       method : "adjustTime"
-      player1 : @player1
-      player2 : @player2
+      player1 : @board.player1
+      player2 : @board.player2
     }
 
   start : () =>
     @turn  = 1
-    @player1 = { life: 9, time : 30000 }
-    @player2 = { life: 9, time : 30000 }
     @state = "playing"
     @currentTime = Date.now()
 
@@ -334,7 +380,7 @@ class Game
       @currentTime = Date.now()
       player = @getCurrentPlayer()
       player.time -= @currentTime - oldTime
-      graphicApi.updateGameInfo(@getPlayerInfoCommand())
+      node.emit("graphicApi.updateGameInfo", @getPlayerInfoCommand())
       if player.time < 0
         socket.emit('game', 
           method  : "timeout"
@@ -347,67 +393,33 @@ class Game
 
   nextTurn : () -> @turn++
 
-  setGameInfoUpdater : (updater) -> @updateGameInfo = updater
-
-  end : ->
-    console.log "end game"
+  end : =>
     @state = "end"
 
-  moveKoma : (moveInfo, check) =>
-    bkBoard = @board.duplicate()
-    @board.getKoma moveInfo.to.position
-    fromKoma = @board.getKoma moveInfo.from.position
-    toKoma = @board.getKoma moveInfo.to.position
-    if util.isntVacant toKoma
-      @board.putKomaToKomadai(2-@turn%2, toKoma)
-    @board.removeKoma moveInfo.from.position
-    
-    putKoma = new Koma(fromKoma.playerNumber, fromKoma.komaType)
-    putKoma.komaType = moveInfo.to.komaType
-    @board.putKoma(putKoma, moveInfo.to.position)
-    
-    if @judge.isOute(@, 2-@turn%2)
-      console.log "王手無視"
-      @board = bkBoard
-      return false
-    if @judge.isOute(@, 2-@turn%2)
-      console.log "oute"
-    if check
-      @board = bkBoard
-    else
-      @turn++
-    return true
-
-  canMoveKoma : (moveInfo) => @moveKoma(moveInfo, true)
-
-  putKoma : (moveInfo, check) =>
-    bkBoard = @board.duplicate()
-    fromKoma = @board.getKomaFromKomadai( 2-@turn%2, moveInfo.to.komaType )
-    @board.putKoma(fromKoma, moveInfo.to.position)
-    if @judge.isOute(@, 2-@turn%2)
-      console.log "王手無視"
-      @board = bkBoard
-      return false
-    if check
-      @board = bkBoard
-    else
-      @turn++
-    return true
-
-  canPutKoma : (moveInfo) => @putKoma(moveInfo, true)
-
-  isTsumi : -> @judge.isTsumi(@, 2-@turn%2)
-  getCurrentPlayer : => if @turn%2 is 1 then @player1 else @player2
+  getCurrentPlayer : => if @turn%2 is 1 then @board.player1 else @board.player2
 
 class KifuPlayer
-  constructor : (@kifu, @playerNumber, @refresh) ->
+  constructor : (@kifu, @playerNumber, @refresh, @player1, @player2) ->
     @index = 0
-    @board = new Board()
+    @currentTime = Date.now()
+    @board = new Board(player1, player2)
     @board.initBoard()
     @boards = []
+    @elapsedTime = 0
     currentBoard = @board
     @boards.push( @board )
     _( @kifu ).each( (te) => @readTe te )
+
+  getPlayerInfo : =>
+    board = @boards[@boards.length-1]
+    if @currentPlayerNumber is 1
+      player1 = { life : board.player1.life, time : board.player1.time + @currentTime - Date.now() - @elapsedTime }
+      player2 = board.player2
+    else
+      player1 = board.player1
+      player2 = { life : board.player2.life, time : board.player2.time + @currentTime - Date.now() - @elapsedTime }
+    return { player1 : player1, player2 : player2 }
+
   getCurrentBoard : -> @boards[@index]
 
   addKifu : (te) -> @readTe te
@@ -416,20 +428,30 @@ class KifuPlayer
     currentBoard = @boards[@boards.length-1]
     currentBoard = currentBoard.duplicate()
     currentPlayerNumber = 2-te.turn%2
-    if not te.foul
-      if te.info.from.x isnt -1
-        currentBoard.removeKoma te.info.from
-        toKoma = currentBoard.getKoma( te.info.to )
-      else
-        currentBoard.removeKomaFromKomadai(currentPlayerNumber, te.info.koma)
+    currentBoard.player1 = te.playerInfo.player1
+    currentBoard.player2 = te.playerInfo.player2
 
-      if toKoma
-        currentBoard.removeKoma( te.info.to )
-        currentBoard.putKomaToKomadai(currentPlayerNumber, new Koma(currentPlayerNumber, toKoma.komaType ) )
-      currentBoard.putKoma( new Koma( currentPlayerNumber, te.info.koma), te.info.to )
-      currentBoard.emphasisPosition = te.info.to
-    else 
-      currentBoard.life[currentPlayerNumber] = currentBoard.life[currentPlayerNumber] - 1
+    @currentTime = Date.now()
+    currentBoard.turn = te.turn
+    if te.info.type is "moveKoma"
+      if not te.foul
+        if te.info.from.x isnt -1
+          currentBoard.removeKoma te.info.from
+          toKoma = currentBoard.getKoma( te.info.to )
+        else
+          currentBoard.removeKomaFromKomadai(currentPlayerNumber, te.info.koma)
+
+        if toKoma
+          currentBoard.removeKoma( te.info.to )
+          currentBoard.putKomaToKomadai(currentPlayerNumber, new Koma(currentPlayerNumber, toKoma.komaType ) )
+        currentBoard.putKoma( new Koma( currentPlayerNumber, te.info.koma), te.info.to )
+        currentBoard.emphasisPosition = te.info.to
+        @currentPlayerNumber = 2-(te.turn+1)%2
+      else 
+        currentBoard.life[currentPlayerNumber] = currentBoard.life[currentPlayerNumber] - 1
+        @currentPlayerNumber = 2-te.turn%2
+    else if te.info.type is "endGame"
+      currentBoard.endGame = true
 
     @boards.push( currentBoard )
 
@@ -440,6 +462,7 @@ class KifuPlayer
   next : ->
     @index++
     @refresh( @index, @boards[@index] )
+    @activateUpdateTimer()
   back : -> 
     @index--
     @refresh( @index, @boards[@index] )
@@ -447,430 +470,516 @@ class KifuPlayer
     if @index isnt @boards.length - 1
       @index = @boards.length - 1
       @refresh( @index, @boards[@index] )
+      @activateUpdateTimer()
   toIndex : (index) ->
     if @index isnt index
       @index = index
       @boards[index]
       @refresh( @index, @boards[@index] )
+      if @index is @boards.length - 1
+        @activateUpdateTimer()
 
-    
-class SyogiJudgement
-  constructor : () ->
-
-  canMove = (game, playerNumber, moveInfo) ->
-    return false if game.state isnt "playing"
-    return false if game.turn % 2 isnt playerNumber % 2
-    fromKoma = game.board.getKoma(moveInfo.from.position)
-    toKomaType = komaTypes[moveInfo.to.komaType]
-    return false if util.isInRange(moveInfo.from.position) or util.isInRange(moveInfo.to.position)
-    return false if !fromKoma
-    return false if fromKoma.komaType.name isnt moveInfo.from.komaType
-    return false if toKomaType.name isnt fromKoma.komaType.name and toKomaType.resourceId isnt fromKoma.komaType.name
-    toKoma   = game.board.getKoma(moveInfo.to.position)
-    return false if toKoma and toKoma.playerNumber is playerNumber
-    pos = _(moveConvertor.getMovablePos(playerNumber, moveInfo.from.komaType, moveInfo.from.position)).find((pos)->util.posEq(pos, moveInfo.to.position))
-    return true if pos 
-    return false
-
-  isOute : (game, playerNumber) =>
-    kikiMap = {}
-    enemyPlayerNumber = if playerNumber is 1 then 2 else 1
-    _( game.board.getPlayerKoma( enemyPlayerNumber ) ).each( (komaInfo) ->
-      postions = _(moveConvertor.getMovablePos(enemyPlayerNumber, komaInfo.koma.komaType, komaInfo.position, game.board))
-      postions = _(postions).map((pos)-> util.posToStr(pos))
-      _( postions ).each( (p) -> kikiMap[p] = true )
-    )
-    ou = game.board.getOu playerNumber
-    ouPos = util.posToStr ou.position
-    console.log "playerNumber:"+playerNumber
-    console.log "ouPos:"+ouPos
-    console.log kikiMap
-    return if kikiMap[ouPos] then true else false
-
-  isTsumi : (game, playerNumber) =>
-    return _( game.board.getPlayerKoma( playerNumber ) ).some( (komaInfo) ->
-      positions = moveConvertor.getMovablePos(playerNumber, komaInfo.koma.komaType, komaInfo.position, game.board)
-      return _(positions).some( (pos) -> 
-        moveInfo = 
-          from : 
-            position : komaInfo.position
-            komaType : komaInfo.koma.komaType
-          to   :
-            position : pos
-            komaType : komaInfo.koma.komaType
-        return game.canMoveKoma moveInfo
-      )
-    )
+  activateUpdateTimer : ()->
+    updateTimer = () =>
+      return updateTimer = null if @index isnt @boards.length-1
+      return updateTimer = null if @boards[@boards.length-1].endGame
+      return updateTimer = null if kifuApi.state isnt "replay"
+      node.emit( "graphicApi.updateGameInfo", @getPlayerInfo() )
+      window.setTimeout(updateTimer, 500)
+    updateTimer()
 
 game = null
-gameApi.startGame = ( playerNumber ) ->
-  graphicApi.clearTable()
-  game = new Game(playerNumber)
-  game.start()
-  gameApi.game = game
-  graphicApi.redrawKoma( game.board, game.state, game.turn )
 
-gameApi.endGame = ( info ) ->
-  game.end()
-  graphicApi.redrawKoma( game.board, game.state, game.turn )
-
-gameApi.tryMoveKoma = (moveInfo) -> 
-  socket.emit('game', 
-    method  : "moveKoma"
-    args    : moveInfo
+node.connect({name : "gameApi"}, (gameApiSocket) -> 
+  gameApiSocket.on( "gameApi.startGame", ( arg ) ->
+    gameApiSocket.broadcast.emit( "graphicApi.clearTable" )
+    gameApiSocket.broadcast.emit( "soundApi.playStartSound" )
+    game = new Game( arg.playerNumber, arg.playerInfo.player1, arg.playerInfo.player2 )
+    game.start()
+    gameApiSocket.broadcast.emit( "graphicApi.redrawKoma", game )
   )
 
-gameApi.moveKoma = (moveInfo) -> 
-  game.moveKoma moveInfo
-  graphicApi.redrawKoma( game.board, game.state, game.turn )
-
-
-gameApi.tryPutKoma = (moveInfo) -> 
-  socket.emit('game', 
-    method  : "putKoma"
-    args    : moveInfo
+  gameApiSocket.on( "gameApi.endGame", ( info ) ->
+    game.end()
+    gameApiSocket.broadcast.emit( "graphicApi.redrawKoma", game )
   )
 
-gameApi.doCommand = (commands) -> 
-  console.log "do command"
-  isFoul = false
-  bkInvated = graphicApi.invatedPosition
-  graphicApi.invatedPosition = null
-  _(commands).each((command) ->
-    console.log command
-    if command.method is "removeKomaFromKomadai"
-      game.board.removeKomaFromKomadai(command.playerNumber, command.koma.komaType)
-    else if command.method is "putKomaToKomadai"
-      game.board.putKomaToKomadai(command.playerNumber, command.koma)
-    else if command.method is "removeKoma"
-      game.board.removeKoma(command.position)
-      graphicApi.invatedPosition = command.position
-    else if command.method is "putKoma"
-      game.board.putKoma(command.koma, command.position)
-      graphicApi.invatedPosition = command.position
-    else if command.method is "adjustTime"
-      game.player1.time = command.player1.time
-      game.player2.time = command.player2.time
-      graphicApi.updateGameInfo(command)
-    else if command.method is "foul"
-      game.getCurrentPlayer().life--
-      graphicApi.updateGameInfo(game.getPlayerInfoCommand())
-      isFoul = true
-  )
-  if isFoul
-    graphicApi.initializeTableState()
-    graphicApi.invatedPosition = bkInvated
-  else
-    game.nextTurn()
-  graphicApi.redrawKoma( game.board, game.state, game.turn )
-
-gameApi.putKoma = (moveInfo) ->
-  console.log "put koma"
-  game.putKoma moveInfo
-  graphicApi.redrawKoma( game.board, game.state, game.turn )
-
-graphicApi.updateGameInfo = (command) ->
-  $("#gameInfo1").html("")
-  $("#gameInfo2").html("")
-  graphicApi.getGameInfoDiv(1).html( "時間："+computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life )
-  graphicApi.getGameInfoDiv(2).html( "時間："+computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life )
-
-graphicApi.redrawKoma = (board, state, turn) ->
-  $board = $('#board')
-  komadai1 = graphicApi.getKomaDai(1)
-  komadai2 = graphicApi.getKomaDai(2)
-  graphicApi.initializeTableState()
-  graphicApi.clearKoma()
-  tmp = ""
-  _(board.komaDai[0]).each( (koma) ->
-    image = graphicApi.getKomaImage(koma)
-    if tmp is koma.komaType
-      image.css({"margin-left" : "-50px"})
-    tmp = koma.komaType
-    if turn % 2 is koma.playerNumber % 2 and state is "playing"
-      ( (komaType)-> image.bind("click", -> graphicApi.showPutableCell(1, komaType, board)))(tmp)
-    komadai1.append(image)
-  )
-  tmp = ""
-  _(board.komaDai[1]).each( (koma) ->
-    image = graphicApi.getKomaImage(koma)
-    if tmp is koma.komaType
-      image.css({"margin-left" : "-50px"})
-    tmp = koma.komaType
-    if turn % 2 is koma.playerNumber % 2 and state is "playing"
-      ( (komaType)-> image.bind("click", -> graphicApi.showPutableCell(2, komaType, board)))(tmp)
-    komadai2.append(image)
+  gameApiSocket.on( "gameApi.tryMoveKoma", (moveInfo) -> 
+    socket.emit('game', 
+      method  : "moveKoma"
+      args    : moveInfo
+    )
   )
 
-  for y in [0...9]
-    for x in [0...9]
-      xx = ""+(9-x)
-      yy = ""+(y+1)
-      td = graphicApi.getCell(xx, yy)
-      koma = board.getKoma({ x : xx - 1 , y : yy - 1 })
-      if koma
-        image = graphicApi.getKomaImage(koma)
-        if turn % 2 is koma.playerNumber % 2 and state is "playing"
-          ( (pos) -> image.bind("click", -> graphicApi.showMovableCell(pos, board))
-          )( {x : xx-1, y:yy-1} )
-        td.append(image)
-
-graphicApi.drawKomaDaiKoma = (playerNumber, komaList) ->
-  komadai = graphicApi.getKomaDai(playerNumber)
-  tmp = ""
-  _( komaList ).each( (koma) ->
-    image = graphicApi.getKomaImage(koma)
-    if tmp is koma.komaType
-      image.css({"margin-left" : "-50px"})
-    tmp = koma.komaType
-    if game.turn % 2 is koma.playerNumber % 2
-      ( (komaType) -> image.bind("click", -> graphicApi.showPutableCell(1, komaType, game.board)))(tmp)
-    komadai.append(image)
+  gameApiSocket.on( "gameApi.tryPutKoma", (moveInfo) -> 
+    socket.emit('game', 
+      method  : "putKoma"
+      args    : moveInfo
+    )
   )
 
-graphicApi.showMovableCell = (fromPos, gameBoard) ->
-  console.log "show movable"
-  graphicApi.initializeTableState()
-  koma = gameBoard.getKoma(fromPos)
-  td = graphicApi.getCell(fromPos.x+1, fromPos.y+1)
-  td.css({"background-color" : "rgba(256,150,150,0.5)"})
-  console.log "get movable"
-  positions = moveConvertor.getMovablePos(koma.playerNumber, koma.komaType, fromPos, gameBoard)
-  _(positions).each((pos) ->
-    td = graphicApi.getCell(pos.x+1, pos.y+1)
-    td.css({"background-color" : "rgba(256,150,150,0.5)"})
-    (->
-      fromPos = util.posDup fromPos
-      toPos   = util.posDup pos
-      fromKoma = gameBoard.getKoma fromPos
-      moveInfo = 
-        from : 
-          position : fromPos
-          komaType : fromKoma.komaType
-        to   :
-          position : toPos
-          komaType : fromKoma.komaType
-      td.bind("click", ->
-        nari = moveConvertor.getNari(koma.playerNumber, koma.komaType, moveInfo.from.position, moveInfo.to.position)
-        if nari is "force"
-          moveInfo.to.komaType = komaTypes[moveInfo.to.komaType].nariId
-        else if nari is "possible"
-          $("#nariDiv").show()
-          $("#modal-overlay").show()
-          $("#nariDiv").css( { "background-color": "#FFFFFF", "opacity" : 0 } )
-          $("#modal-overlay").css( { "background-color": "#000000", "opacity" : 0 } )
-          $("#nariDiv").animate( { "background-color": "#FFFFFF", "opacity" : 0.95 }, 120 )
-          $("#modal-overlay").animate( { "background-color": "#000000", "opacity" : 0.3 }, 120 )
-          graphicApi.nari = (nari) ->
-            $("#modal-overlay").hide()
-            $("#nariDiv").hide()
-            moveInfo.to.komaType = komaTypes[moveInfo.to.komaType].nariId if nari
-            gameApi.tryMoveKoma(moveInfo)
-          return
-        gameApi.tryMoveKoma(moveInfo)
+  gameApiSocket.on( "gameApi.doCommand", (commands) -> 
+    isFoul = false
+    bkInvated = graphicApi.invatedPosition
+    graphicApi.invatedPosition = null
+    _(commands).each((command) ->
+      if command.method is "removeKomaFromKomadai"
+        game.board.removeKomaFromKomadai(command.playerNumber, command.koma.komaType)
+      else if command.method is "putKomaToKomadai"
+        game.board.putKomaToKomadai(command.playerNumber, command.koma)
+      else if command.method is "removeKoma"
+        game.board.removeKoma(command.position)
+        graphicApi.invatedPosition = command.position
+      else if command.method is "putKoma"
+        game.board.putKoma(command.koma, command.position)
+        graphicApi.invatedPosition = command.position
+      else if command.method is "adjustTime"
+        game.board.player1.time = command.player1.time
+        game.board.player2.time = command.player2.time
+        gameApiSocket.broadcast.emit( "graphicApi.updateGameInfo", command )
+      else if command.method is "foul"
+        game.getCurrentPlayer().life--
+        gameApiSocket.broadcast.emit( "graphicApi.updateGameInfo", game.getPlayerInfoCommand() )
+        isFoul = true
+    )
+    if isFoul
+      gameApiSocket.broadcast.emit( "soundApi.playFoulSound" )
+      gameApiSocket.broadcast.emit( "graphicApi.initializeTableState" )
+      graphicApi.invatedPosition = bkInvated
+    else
+      gameApiSocket.broadcast.emit( "soundApi.playKomaSound" )
+      game.nextTurn()
+    gameApiSocket.broadcast.emit( "graphicApi.redrawKoma", game )
+  )
+
+  gameApiSocket.on( "gameApi.getGame", -> game )
+)
+
+class BordCanvas
+  constructor : (@selector, @onmouseDown) ->
+
+  loadCanvas : (cont) =>
+    if @canvas is null or @canvas is undefined
+      $canvas = $(@selector)
+      @canvas = $canvas.get(0)
+      @canvas.width  = 540
+      @canvas.height = 578
+      @ctx = @canvas.getContext("2d")
+      mouseX = mouseY = 0
+      $canvas.on("mousemove", (e) =>
+        rect = e.target.getBoundingClientRect()
+        mouseX = e.clientX - rect.left
+        mouseY = e.clientY - rect.top
       )
-    )()
+      $canvas.on("mousedown", (e) =>
+        pos = util.posFlipX ( { x : parseInt(mouseX/60), y :parseInt(mouseY/64 ) } )
+        @onmouseDown( pos )
+      )
+
+  init : () =>
+    @loadCanvas() 
+    @ctx.fillStyle = "rgba(255, 10, 30, 0)"
+    @ctx.clearRect(0, 0, @canvas.width, @canvas.height)
+    @ctx.fillRect(0, 0, @canvas.width, @canvas.height)
+    
+
+  putKoma : (image, physicalPosition) =>
+    @loadCanvas()
+    @ctx.drawImage( image, physicalPosition.x*60 , physicalPosition.y*64 )
+
+  checkCell : (position) =>
+    @loadCanvas()
+    @ctx.fillStyle = "rgba(256, 150, 150, 0.5)"
+    @ctx.fillRect( position.x*60 , position.y*64, 60, 64 )
+
+class KomadaiCanvas
+  constructor : (@selector, @onmouseDown) ->
+
+  loadCanvas : (cont) =>
+    if @canvas is null or @canvas is undefined
+      $canvas = $(@selector)
+      @canvas = $canvas.get(0)
+      @canvas.width  = 250
+      @canvas.height = 250
+      @ctx = @canvas.getContext("2d")
+      mouseX = mouseY = 0
+      $canvas.on("mousemove", (e) =>
+        rect = e.target.getBoundingClientRect()
+        mouseX = e.clientX - rect.left
+        mouseY = e.clientY - rect.top
+      )
+      $canvas.on("mousedown", (e) =>
+        rect = _( @rects ).find( (rect) -> rect.x < mouseX < rect.x + rect.width and rect.y < mouseY < rect.y + rect.height )
+        if rect
+          @onmouseDown(rect.koma)
+      )
+
+  init : () =>
+    @loadCanvas() 
+    @ctx.fillStyle = "rgba(255, 10, 30, 0)"
+    @ctx.clearRect(0, 0, @canvas.width, @canvas.height)
+    @ctx.fillRect(0, 0, @canvas.width, @canvas.height)
+
+  drawKoma : (komalist, flip) =>
+    @init()
+    tmp = ""
+    list = null
+    komaTypeList = []
+    _(komalist).each( (koma) -> 
+      if tmp isnt koma.komaType
+        komaTypeList.push( list ) if list isnt null
+        list = [koma]
+      else
+        list.push(koma)
+      tmp = koma.komaType
+    )
+    komaTypeList.push( list ) if list isnt null
+
+    space = row = 0
+    ctx = @ctx
+    @rects = rects = []
+    _(komaTypeList).each( (list) ->
+      width = 60 + (list.length-1)*12
+      if space + width > 245
+        space = 0
+        row++
+      _(list).each( (koma, i) -> ctx.drawImage( domFinder.getKomaImage2(koma, flip), 5+space+i*12,row*68 ) )
+      rects.push({ koma : list[0], x : 5+space, width : width, y : row*68, height : 64 })
+      space += width
+    )
+
+  checkRect : (rect) =>
+    @loadCanvas()
+    @ctx.fillStyle = "rgba(256, 150, 150, 0.5)"
+    @ctx.fillRect( rect.x , rect.y, rect.width, rect.height )
+
+node.connect({name : "graphicApi"}, (graphicApiSocket) -> 
+  bordCanvas = new BordCanvas("#board", (pos) -> 
+    pos = util.posFlip( pos, params.flip )
+    _( _( graphicApi.moveToPositions ).filter( (toPos) -> util.posEq(toPos, pos)
+    )).each( (pos) -> graphicApi.movekoma(pos) )
+    _( _( graphicApi.putToPositions ).filter( (toPos) -> util.posEq(toPos, pos)
+    )).each( (pos) -> graphicApi.putkoma(pos) )
+    showMovableCell(pos) 
   )
 
-graphicApi.showPutableCell = (playerNumber, komaType, gameBoard) ->
-  console.log "showPutableCell"
-  graphicApi.initializeTableState()
-  positions = moveConvertor.getPutableCell(playerNumber, komaType, gameBoard)
-  if komaType is "hu"
-    columns = gameBoard.getExistsHuColumn(playerNumber)
-    positions = _(positions).filter( (p) -> if columns[p.x] then false else true )
+  komadai1Canvas = new KomadaiCanvas("#komadai1", (koma) -> showPutableCell(koma.playerNumber, koma.komaType) )
+  komadai2Canvas = new KomadaiCanvas("#komadai2", (koma) -> showPutableCell(koma.playerNumber, koma.komaType) )
 
-  _(positions).each((pos) ->
-    td = graphicApi.getCell(pos.x+1, pos.y+1)
-    td.css({"background-color" : "rgba(256,150,150,0.5)"})
-    (->
-      moveInfo = 
-        to   :
-          position : pos
-          komaType : komaType
-      td.bind("click", ->gameApi.tryPutKoma(moveInfo))
-    )()
+  params =
+    flip : false
+
+  graphicApiSocket.on( "graphicApi.updateGameInfo", (command) ->
+    domFinder.getGameInfoDiv(1, params.flip).empty()
+    domFinder.getGameInfoDiv(2, params.flip).empty()
+
+    domFinder.getGameInfoDiv(1, params.flip).append( "▲ 時間："+computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life )
+    domFinder.getGameInfoDiv(2, params.flip).append( "△ 時間："+computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life )
   )
 
-graphicApi.clearTable = ->
-  graphicApi.invatedPosition = null
-  board = $('#board')
-  board.html("")
-  for y in [0...9]
-    yy = ""+(y+1)
-    row = $("<div id='row_#{yy}'></div>")
-    board.append(row)
-    for x in [0...9]
-      xx = ""+(9-x)
-      cell = $("<div id='cell_#{xx}_#{yy}' class='cell'></div>").offset({ top : y*64, left : x*60 })
-      row.append(cell)
+  graphicApiSocket.on( "graphicApi.setPlayerInfo", (command) ->
+    domFinder.getPlayerImageDiv(1, params.flip).empty()
+    domFinder.getPlayerImageDiv(2, params.flip).empty()
+    domFinder.getPlayerInfoDiv(1, params.flip).empty()
+    domFinder.getPlayerInfoDiv(2, params.flip).empty()
 
-graphicApi.clearKoma = ->
-  allKoma = $(".koma")
-  allKoma.unbind("click")
-  allKoma.remove()
+    domFinder.getPlayerImageDiv(1, params.flip).append( domFinder.getIconImage( command.player1.profile_url, command.player1.character ) )
+    domFinder.getPlayerInfoDiv(1, params.flip).append( command.player1.name )
 
-graphicApi.initializeTableState = ->
-  console.log "init cellstate"
-  allTd = $(".cell")
-  allTd.css("background-color", "transparent")
-  allTd.unbind("click")
-  if graphicApi.invatedPosition
-    console.log "mark invated cell"
-    td = graphicApi.getCell(graphicApi.invatedPosition.x+1, graphicApi.invatedPosition.y+1)
-    td.css({"background-color" : "rgba(100,256,256,0.5)"})
+    domFinder.getPlayerImageDiv(2, params.flip).append( domFinder.getIconImage( command.player2.profile_url, command.player2.character ) )
+    domFinder.getPlayerInfoDiv(2, params.flip).append( command.player2.name )
+  )
 
-graphicApi.flipBord = (flip) -> 
-  if flip
-    $("#boardImg").css( { "transform" : "rotate3d(0, 0, 1, 180deg)"} )
-  else
-    $("#boardImg").css( { "transform" : "rotate3d(0, 0, 1, 0deg)"} )
-  graphicApi.flip = flip
-  graphicApi.redrawKoma( gameApi.game.board, gameApi.game.state, gameApi.game.turn )
+  redrawKoma = (arg) ->
+    initializeTableState()
+    clearKoma()
+    drawKoma(arg)
 
-graphicApi.getKomaImage = (koma) ->
-  if graphicApi.flip
-    if koma.playerNumber is 2
-      $("<img class='koma' src='./images/koma/60x64/#{images.koma1[koma.komaType]}'>")
-    else 
-      $("<img class='koma' src='./images/koma/60x64/#{images.koma2[koma.komaType]}'>")
-  else 
-    if koma.playerNumber is 1
-      $("<img class='koma' src='./images/koma/60x64/#{images.koma1[koma.komaType]}'>")
-    else 
-      $("<img class='koma' src='./images/koma/60x64/#{images.koma2[koma.komaType]}'>")
+  drawKoma = (arg) ->
+    komadai1 = if params.flip then komadai2Canvas else komadai1Canvas
+    komadai2 = if params.flip then komadai1Canvas else komadai2Canvas
+    komadai1.drawKoma( arg.board.komaDai[0], params.flip )
+    komadai2.drawKoma( arg.board.komaDai[1], params.flip )
+    util.allPos((x, y) ->
+      koma = arg.board.getKoma({ x : x , y : y })
+      if koma
+        bordCanvas.putKoma( domFinder.getKomaImage2(koma, params.flip), util.posFlipX( util.posFlip( { x : x , y : y }, params.flip ) ) )
+    )
 
-graphicApi.getKomaDai = (playerNumber) -> 
-  if graphicApi.flip
-    return $('#komadai'+( if playerNumber is 1 then "2" else "1"))
-  else
-    return $('#komadai'+( if playerNumber is 1 then "1" else "2"))
+  graphicApiSocket.on( "graphicApi.redrawKoma", redrawKoma )
 
-graphicApi.getGameInfoDiv = (playerNumber) -> 
-  if graphicApi.flip
-    return $('#gameInfo'+( if playerNumber is 1 then "2" else "1"))
-  else
-    return $('#gameInfo'+( if playerNumber is 1 then "1" else "2"))
+  showMovableCell = (fromPos) -> 
+    graphicApiSocket.broadcast.emit( "gameApi.getGame", null, (game) -> 
+      koma = game.board.getKoma(fromPos)
+      return if not koma or koma.playerNumber is (game.turn%2+1) or game.state isnt "playing"
+      
+      initializeTableState()
+      graphicApi.movekoma = (pos) ->
+          fromPos = util.posDup fromPos
+          toPos   = util.posDup pos
+          fromKoma = game.board.getKoma fromPos
+          moveInfo = 
+            from : 
+              position : fromPos
+              komaType : fromKoma.komaType
+            to   :
+              position : toPos
+              komaType : fromKoma.komaType
 
-graphicApi.getPos = (pos) ->
-  if graphicApi.flip 
-    return 9 - pos
-  else
-    return pos - 1
-
-graphicApi.getCell = (x, y) -> 
-  if graphicApi.flip 
-    $("#cell_#{(10-x)}_#{(10-y)}")
-  else
-    $("#cell_#{x}_#{y}")
-
-graphicApi.hideModal = ->
-  $("#modal-window").hide()
-  $("#modal-overlay").hide()
-  if graphicApi.afterHideModal
-    graphicApi.afterHideModal()
-    graphicApi.afterHideModal = undefined
+          nari = moveConvertor.getNari(koma.playerNumber, koma.komaType, moveInfo.from.position, moveInfo.to.position)
+          if nari is "force"
+            moveInfo.to.komaType = komaTypes[moveInfo.to.komaType].nariId
+          else if nari is "possible"
+            showNariDiv()
+            graphicApi.nari = (nari) ->
+              moveInfo.to.komaType = komaTypes[moveInfo.to.komaType].nariId if nari
+              graphicApiSocket.broadcast.emit( "gameApi.tryMoveKoma", moveInfo )
+            return
+          graphicApiSocket.broadcast.emit( "gameApi.tryMoveKoma", moveInfo )
+      positions = moveConvertor.getMovablePos(koma.playerNumber, koma.komaType, fromPos, game.board)
+      bordCanvas.checkCell( util.posFlipX( util.posFlip( fromPos, params.flip ) ) )
+      _(positions).each( (pos) -> bordCanvas.checkCell( util.posFlipX( util.posFlip( pos, params.flip ) ) ) )
+      graphicApi.moveToPositions = positions
+      drawKoma(game)
+    )
 
 
-kifuApi.replayKifu = (kifu) ->
-  $('#kifuSelectBox').html("")
-  $("#kifuInfoDiv").show()
-  $("#kifuReplayDiv").show()
-  refresh = (index, board) ->
-    $('#kifuSelectBox').val(index)
-    kifuLength = $("#kifuSelectBox").children().length - 1
-    if board.emphasisPosition
-      graphicApi.invatedPosition = board.emphasisPosition
+  showNariDiv = () ->
+    $("#nariDiv").show()
+    $("#modal-overlay").show()
+    $("#nariDiv").css( { "background-color": "#FFFFFF", "opacity" : 0 } )
+    $("#modal-overlay").css( { "background-color": "#000000", "opacity" : 0 } )
+    $("#nariDiv").animate( { "background-color": "#FFFFFF", "opacity" : 0.95 }, 120 )
+    $("#modal-overlay").animate( { "background-color": "#000000", "opacity" : 0.3 }, 120 )
+  
+  graphicApiSocket.on( "graphicApi.nari", (nari) -> 
+    $("#modal-overlay").hide()
+    $("#nariDiv").hide()
+    graphicApi.nari(nari) 
+  )
+
+  showPutableCell = (playerNumber, komaType) ->
+    graphicApiSocket.broadcast.emit( "gameApi.getGame", null, (game) -> 
+      return if playerNumber is (game.turn%2+1) or game.state isnt "playing"
+      initializeTableState()
+      positions = moveConvertor.getPutableCell(playerNumber, komaType, game.board)
+      if komaType is "hu"
+        columns = game.board.getExistsHuColumn(playerNumber)
+        positions = _(positions).filter( (p) -> if columns[p.x] then false else true )
+      _(positions).each((pos) -> bordCanvas.checkCell( util.posFlipX( util.posFlip( pos, params.flip ) ) ) )
+      graphicApi.putToPositions = positions
+      drawKoma(game)
+      graphicApi.putkoma = (pos) ->
+        moveInfo = 
+          to   :
+            position : pos
+            komaType : komaType
+        graphicApiSocket.broadcast.emit( "gameApi.tryPutKoma", moveInfo )
+    )
+
+  clearKoma = ->
+    bordCanvas.init()
+
+  graphicApiSocket.on( "graphicApi.clearTable", ->
+    clearKoma()
+    graphicApi.invatedPosition = null
+  )
+
+  initializeTableState = ->
+    graphicApi.moveToPositions = []
+    graphicApi.putToPositions = []
+    if graphicApi.invatedPosition
+      bordCanvas.checkCell( util.posFlipX( util.posFlip( graphicApi.invatedPosition, params.flip ) ) )
+    bordCanvas.init()
+
+  graphicApiSocket.on( "graphicApi.initializeTableState", initializeTableState )
+
+  graphicApiSocket.on( "graphicApi.flipBord", (flip) -> 
+    if flip
+      $("#boardImg").css( { "transform" : "rotate3d(0, 0, 1, 180deg)"} )
     else
-      graphicApi.invatedPosition = null
-    graphicApi.redrawKoma( board, 1 , "replay" )
-    $('#toStartButton').prop('disabled', index is 0)
-    $('#backButton').prop('disabled', index is 0)
-    $('#nextButton').prop('disabled', kifuLength is index )
-    $('#toEndButton').prop('disabled', kifuLength is index )
-
-  kifuApi.kifuPlayer = new KifuPlayer( kifu, 1, refresh )
-  graphicApi.redrawKoma( kifuApi.kifuPlayer.getCurrentBoard(), 1 , "replay" )
-  index = 0
-
-  $('#kifuSelectBox').unbind("change")
-  $('#kifuSelectBox').bind("change", () ->
-    index = $('#kifuSelectBox option:selected').val()
-    kifuApi.kifuPlayer.toIndex( parseInt(index) )
+      $("#boardImg").css( { "transform" : "rotate3d(0, 0, 1, 0deg)"} )
+    params.flip = flip
+    redrawKoma(game)
   )
-  option = $("<option value='#{index}'>対局開始</option>")
-  index++
-  $("#kifuSelectBox").append(option)
-  _( kifu ).each( (te) ->
-    if not te.foul
-      value = "#{te.turn} : " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
+
+  graphicApiSocket.on( "graphicApi.hideModal", ->
+    $("#modal-window").hide()
+    $("#modal-overlay").hide()
+    if graphicApi.afterHideModal
+      graphicApi.afterHideModal()
+      graphicApi.afterHideModal = undefined
+  )
+)
+
+domFinder = 
+  getGameInfoDiv : (playerNumber, flip) -> 
+    if flip
+      return $('#gameinfostr'+( if playerNumber is 1 then "2" else "1"))
     else
-      value = "#{te.turn} : [反則] " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
-    option = $("<option value='#{index}'>#{value}</option>")
+      return $('#gameinfostr'+( if playerNumber is 1 then "1" else "2"))
+  getPlayerImageDiv : (playerNumber, flip) -> 
+    if flip
+      return $('#playerimage'+( if playerNumber is 1 then "2" else "1"))
+    else
+      return $('#playerimage'+( if playerNumber is 1 then "1" else "2"))
+  getPlayerInfoDiv : (playerNumber, flip) -> 
+    if flip
+      return $('#playerinfo'+( if playerNumber is 1 then "2" else "1"))
+    else
+      return $('#playerinfo'+( if playerNumber is 1 then "1" else "2"))
+
+  getKomaImage2 : (koma, flip) ->
+    if flip
+      if koma.playerNumber is 2
+        images2.koma1[koma.komaType]
+      else 
+        images2.koma2[koma.komaType]
+    else 
+      if koma.playerNumber is 1
+        images2.koma1[koma.komaType]
+      else 
+        images2.koma2[koma.komaType]
+
+  getIconImage : (url, character) ->
+      if url
+        $("<img src='#{url}'>")
+      else if character
+        str = ("0000"+character).slice(-4)
+        $("<img src='./images/icon/snap#{str}.png'>")
+      else 
+        $("<img src='./images/icon/noname.jpeg'>")
+
+
+node.connect({name : "kifuApi"}, (kifuApiSocket) -> 
+
+  kifuApiSocket.on( "kifuApi.replayKifu", (arg) ->
+    kifuApi.state = "replay"
+    $('#kifuSelectBox').empty()
+    $("#kifuInfoDiv").show()
+    $("#kifuReplayDiv").show()
+    refresh = (index, board) ->
+      node.emit( "graphicApi.updateGameInfo", { player1 : board.player1, player2 : board.player2 } )
+      $('#kifuSelectBox').val(index)
+      kifuLength = $("#kifuSelectBox").children().length - 1
+      if board.emphasisPosition
+        graphicApi.invatedPosition = board.emphasisPosition
+      else
+        graphicApi.invatedPosition = null
+      node.emit( "graphicApi.redrawKoma", { board : board, turn : 1 , state : "replay" } )
+      $('#toStartButton').prop('disabled', index is 0)
+      $('#backButton').prop('disabled', index is 0)
+      $('#nextButton').prop('disabled', kifuLength is index )
+      $('#toEndButton').prop('disabled', kifuLength is index )
+
+    kifuApi.kifuPlayer = new KifuPlayer( arg.kifu, 1, refresh, arg.playerInfo.player1, arg.playerInfo.player2 )
+    kifuApi.kifuPlayer.activateUpdateTimer()
+    node.emit( "graphicApi.redrawKoma", { board : kifuApi.kifuPlayer.getCurrentBoard(), turn : 1 , state :"replay" } )
+    index = 0
+
+    $('#kifuSelectBox').unbind("change")
+    $('#kifuSelectBox').bind("change", () ->
+      index = $('#kifuSelectBox option:selected').val()
+      kifuApi.kifuPlayer.toIndex( parseInt(index) )
+    )
+    option = $("<option value='#{index}'>対局開始</option>")
     index++
+    $("#kifuSelectBox").append(option)
+    _( arg.kifu ).each( (te) ->
+      if te.info.type is "moveKoma"
+        if not te.foul
+          value = "#{te.turn} : " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
+        else
+          value = "#{te.turn} : [反則] " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
+        option = $("<option value='#{index}'>#{value}</option>")
+      else if te.info.type is "endGame"
+        value = "player#{te.info.winPlayerNumber} win. (#{te.info.reason})"
+        option = $("<option value='#{index}'>#{value}</option>")
+      index++
+      $("#kifuSelectBox").append(option)
+    )
+  )
+
+  kifuApiSocket.on( "kifuApi.addKifu", (te) -> 
+    kifuApi.kifuPlayer.addKifu te
+    i = $("#kifuSelectBox").children().length
+    if te.info.type is "moveKoma"
+      if not te.foul
+        kifuApiSocket.broadcast.emit( "soundApi.playKomaSound" )
+        value = "#{te.turn} : " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
+      else
+        kifuApiSocket.broadcast.emit( "soundApi.playFoulSound" )
+        value = "#{te.turn} : [反則] " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
+      option = $("<option value='#{i}'>#{value}</option>")
+    else if te.info.type is "endGame"
+      value = "player#{te.info.winPlayerNumber} win. (#{te.info.reason})"
+      option = $("<option value='#{i}'>#{value}</option>")
     $("#kifuSelectBox").append(option)
   )
 
-kifuApi.addKifu = (te) -> 
-  kifuApi.kifuPlayer.addKifu te
-  i = $("#kifuSelectBox").children().length
-  console.log i
-  if not te.foul
-    value = "#{te.turn} : " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
-  else
-    value = "#{te.turn} : [反則] " + (te.info.from.x+1) + (te.info.from.y+1) + (te.info.to.x+1) + (te.info.to.y+1) + te.info.koma
-  option = $("<option value='#{i}'>#{value}</option>")
-  $("#kifuSelectBox").append(option)
+  kifuApiSocket.on( "kifuApi.toStart"       ,        -> kifuApi.kifuPlayer.toStart() )
+  kifuApiSocket.on( "kifuApi.next"          ,        -> kifuApi.kifuPlayer.next() )
+  kifuApiSocket.on( "kifuApi.back"          ,        -> kifuApi.kifuPlayer.back() )
+  kifuApiSocket.on( "kifuApi.toEnd"         ,        -> kifuApi.kifuPlayer.toEnd() )
+  kifuApiSocket.on( "kifuApi.setElapsedTime", (time) -> kifuApi.kifuPlayer.elapsedTime = time )
+  kifuApiSocket.on( "kifuApi.stop"          ,        -> kifuApi.state = "stop" )
+)
 
-kifuApi.toStart = -> kifuApi.kifuPlayer.toStart()
-kifuApi.next    = -> kifuApi.kifuPlayer.next()
-kifuApi.back    = -> kifuApi.kifuPlayer.back()
-kifuApi.toEnd   = -> kifuApi.kifuPlayer.toEnd()
+node.connect({name : "soundApi"}, (soundApiSocket) -> 
+  soundApiSocket.on( "soundApi.playStartSound", () -> playSound("start") )
+  soundApiSocket.on( "soundApi.playKomaSound",  () -> playSound("koma") )
+  soundApiSocket.on( "soundApi.playFoulSound",  () -> playSound("foul") )
+  soundApiSocket.on( "soundApi.playSound",  (name) -> 
+    if name isnt "koma" and name isnt "foul" and name isnt "start"
+      playSound(name)
+  )
+)
 
+node.connect( {name : "pagingApi"}, (pagingApiSocket) -> 
 
+  pagingApiSocket.on( "pagingApi.login", (arg) ->
+    $("#lobby-login").show()
+    $("#chatDiv").slideDown(500)
+    $("#lobby-logout").hide()
+    $("#account-icon").empty()
+    $("#account-icon").append(domFinder.getIconImage(arg.account.profile_url, arg.account.character))
+    $("#account-name").empty()
+    $("#account-name").append("\"#{arg.account.name}\" さん ごきげんよう")
+  )
 
+  pagingApiSocket.on( "pagingApi.logout", ->
+    $("#messages").append($('<li>').addClass('system-info').text("サーバーとの接続が切れました。"))
+    showModal(["サーバーとの接続が切れました。"], { ok : true })
+    graphicApi.afterHideModal = () ->
+      $("#lobby-menu").hide()
+      $("#lobby").show()
+      $("#lobby-watch").show()
+      $("#game").hide()
+      $("#room").hide()
+      $("#lobby-logout").show()
+      $("#lobby-login").hide()
+  )
 
-###
-divType = [
-  "lobby-logout" : []
-  "lobby-login" : []
-  "lobby-watch" : []
-  "roomWatchMenu" : []
-  "game" : []
-  "kifuInfoDiv" : []
-  "kifuReplayDiv" : []
-  "gameMessageAreaDiv" : []
-]
+  pagingApiSocket.on( "pagingApi.game", (arg) ->
+      $("#game").show()
+      $("#room").show()
+      $("#resignButton").show()
+      $("#lobby").hide()
+      graphicApi.afterHideModal = undefined
+      gTemp.node.emit( "graphicApi.hideModal" )
+      gTemp.node.emit( "gameApi.startGame", arg )
+      if( arg.playerNumber is 2 )
+        gTemp.node.emit( "graphicApi.flipBord", true )
+      else
+        gTemp.node.emit( "graphicApi.flipBord", false )
+      gTemp.node.emit( "graphicApi.setPlayerInfo", arg.account )
+  )
 
-pagingApi.start = () ->
-  $("#roomWatchMenu").hide()
-  $("#kifuInfoDiv").hide()
-  $("#kifuReplayDiv").hide()
-
-pagingApi.watch= () ->
-  $("#lobby").hide()
-
-pagingApi.getPlayingGames = () ->
-  $("#lobby-menu").hide()
-  $("#lobby-watch").show()
-
-pagingApi.exitRoom = () ->
-  $("#lobby-menu").hide()
-  $("#game").hide()
-  $("#room").hide()
-  $("#lobby").show()
-  $("#lobby-watch").show()
-
-pagingApi.connect = () ->
-  $("#lobby-logout").hide()
-  $("#lobby-login").show()
-
-pagingApi.showLobby = () ->
-  $("#lobby-logout").hide()
-  $("#room").hide()
-  $("#roomWatchMenu").hide()
-  $("#lobby-watch").hide()
-  $("#lobby").show()
-  $("#lobby-login").show()
-  $("#lobby-menu").show()
-###
+  pagingApiSocket.on( "pagingApi.exitRoom", (arg) ->
+      $("#lobby-menu").hide();
+      $("#lobby").show();
+      $("#lobby-watch").show();
+      $("#game").hide();
+      $("#room").hide();
+  )
+)

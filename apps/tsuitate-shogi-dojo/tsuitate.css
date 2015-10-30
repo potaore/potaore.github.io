@@ -1,28 +1,83 @@
-
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { 
   font: 13px Helvetica, Arial;
   background-image:url("./images/background/tatami01.jpg");
 }
-#messages { list-style-type: none; margin: 0; padding: 0; }
-#messages li { padding: 5px 10px; }
-#messages li:nth-child(odd) { background: #eee; }
-#messagesDiv {
-  background-image:url("./images/background/Walnut01-p.jpg");
-}
+
+form { padding: 0; width: 100%; }
+form input { border: 0; padding: 10px; width: 90%; background: rgb(230, 255, 240);}
+form button { width: 10%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+.chattoolbutton { width: 10%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+
+#messages { list-style-type: none; margin: 0; padding: 0; color : #99FF99;}
+#messages li { padding: 3px 10px; }
+#messages li:nth-child(odd) { }
+li.system-info { color : #FFFF99;}
+
+#chatDiv { background: #000; margin: 0; position: absolute; bottom: 0; width: 100%; display: none; }
+#chatMessageDiv { width: 100%; height : 150px; max-height: 150px; overflow-y: scroll; }
+
 #title {
+  width: 100%;
+  height: 50px;
   background-image:url("./images/background/Walnut01-p.jpg");
+  /*background: rgba(109, 166, 99, 1);*/
 }
 #title-inner {
   color: white;
   padding: 10px 10px 10px 15px;
+  font-size: x-large; 
+  font-weight: bold;
+  float: left;
 }
+
+.infomation {
+  color   : white;
+  float: left;
+  bottom: 0px;
+}
+
+#account-name {
+  padding : 25px 15px 15px 5px;
+}
+
+#connection-info {
+  color   : white;
+  padding : 25px 15px 15px 15px;
+  position: relative;
+  float: right;
+  bottom: 0px;
+}
+
+#helpbutton {
+  float: left;
+  margin : 15px 0px 0px 0px;
+  bottom: 0px;
+  padding: 3px;
+}
+
+a {
+  text-decoration:none;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  color : rgba(55, 225, 225, 1);
+}
+
+a:hover { 
+  color: white;
+  background: rgba(255, 255, 255, 0.5);
+} 
+
+a:active { color: white } 
+
+
+
 #lobby {
   width : 500px; 
   margin: 15px;
   padding : 5px;
-  width : 1100px; 
-  position:fixed;
+  width : 1100px;
+  position:absolute;
   background-image:url("./images/background/Walnut06-p.jpg");
 }
 #lobby-logout {
@@ -43,15 +98,16 @@ body {
   margin: 15px;
   padding : 5px;
   width : 1100px; 
-  position:fixed;
+  position:absolute;
   background-image:url("./images/background/Walnut06-p.jpg");
   display: none;
 }
 
 #game {
   display: none;
-  top : 80px;
-  position:fixed;
+  top : 10px;
+  width: 100%;
+  position:absolute;
 }
 
 #gameMessageAreaDiv { 
@@ -64,14 +120,23 @@ body {
 }
 #gameMessageArea { list-style-type: none; margin: 0; padding: 0; color: white;}
 #gameMessageArea li { padding: 5px 10px; }
+.row 
+{ 
+  height : 64px;
+  max-height: 64px;
+}
 .cell 
 { 
   width : 60px; 
+  max-width: 60px;
   height : 64px;
+  max-height: 64px;
   margin : 0px;
   padding : 0px;
   border : none;
-  position:absolute;
+  display:inline;
+  background-color: #00FF00;
+  /*position:absolute;*/
 }
 .koma 
 { 
@@ -89,7 +154,7 @@ body {
   width : 250px; 
   height : 250px;
   margin : 15px;
-  padding : 15px;
+  padding : 5px;
   position:absolute;
   border : none;
   background-image:url("./images/board/japanese-chess-bg.jpg");
@@ -106,25 +171,40 @@ body {
 .gameInfo
 {
   width : 250px; 
-  height : 30px;
+  height : 57px;
   margin : 15px;
   padding: 5px;
   position:absolute;
-  background-image:url("./images/board/japanese-chess-bg.jpg");
+  background: rgba(255, 255, 255, 1);
+  /*background-image:url("./images/board/japanese-chess-bg.jpg");*/
 }
+
+.gameInfo-str
+{
+  margin : 5px;
+  padding : 5px;
+}
+
 #gameInfo1 {
-  top:440px;
+  top:410px;
   left:860px;
 }
 #gameInfo2 {
-  top:335px;
+  top:340px;
   left:0px;
+}
+#resignButton {
+  width  : 250px; 
+  height : 50px;
+  position:absolute;
+  top:413px;
+  left:15px;
 }
 
 #kifuInfoDiv {
   display:none;
   width : 250px; 
-  top: 85px;
+  top: 75px;
   left: 860px;
   margin : 15px;
   padding : 15px;
@@ -136,7 +216,7 @@ body {
 #kifuReplayDiv {
   display:none;
   width : 500px; 
-  top: 400px;
+  top: 365px;
   left: 860px;
   margin : 15px;
   padding : 15px;
@@ -145,7 +225,7 @@ body {
 #modal-overlay {
   z-index:1;
   display:none;
-  position:fixed;
+  position:absolute;
   top:0;
   left:0;
   width:100%;
@@ -155,12 +235,13 @@ body {
 .modal-window {
   z-index:2;
   display:none;
-  position:fixed;
-  top:25%;
-  left:25%;
-  width:50%;
-  height:50%;
-  background-color:rgba(256,256,256,1);
+  position:absolute;
+  top:400px;
+  left:375px;
+  width:400px;
+  height:150px;
+  padding: 40px;
+  background-color:rgba(255,255,255,0.9);
   text-align: center;
   vertical-align: middle;
 }
@@ -169,8 +250,12 @@ body {
   height:30px;
 }
 .menu-button {
-  width:80px;
+  width:90px;
   height:30px;
+}
+.menu-textbox {
+  height:30px;
+  width : 250px;
 }
 .confirm-button {
   width:100px;
@@ -185,10 +270,11 @@ body {
   vertical-align: middle;
 }
 #board {
+  z-index:1;
   top:130px;
   left:300px;
-  width : 536px; 
-  height : 576px;
+  width : 540px; 
+  height : 578px;
   border : none;
   position:absolute;
   text-align: center;
@@ -196,13 +282,16 @@ body {
   margin : 0px;
   padding : 0px;
 }
+#gameCanvas {
+
+}
 tr {
   border : none;
-  margin : 0px;
+  margin : 3px;
   padding : 0px;
 }
 td {
   border : none;
-  margin : 0px;
-  padding : 0px;
+  margin : 3px;
+  padding : 0px 5px 0px 5px;
 }
