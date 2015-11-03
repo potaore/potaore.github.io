@@ -36,8 +36,8 @@ function uuid() {
       var socket = null;
       var getSocket = function () {
         if(socket === null || socket === undefined) {
-          //socket = io.connect('http://133.130.72.92:8888');
-          socket = io.connect('http://localhost:8888');
+          socket = io.connect('http://133.130.72.92:8888');
+          //socket = io.connect('http://localhost:8888');
 
           socket.on('auth.login-ok', function(arg){ gTemp.node.emit( "pagingApi.login", arg);});
           socket.on('auth.login-ng', function(arg){ showModal([arg], { ok : true }); });
