@@ -36,8 +36,8 @@ function uuid() {
       var socket = null;
       var getSocket = function () {
         if(socket === null || socket === undefined) {
-          socket = io.connect('http://133.130.72.92:8888');
-          //socket = io.connect('http://localhost:8888');
+          //socket = io.connect('http://133.130.72.92:8888');
+          socket = io.connect('http://localhost:8888');
 
           socket.on('auth.login-ok', function(arg){ gTemp.node.emit( "pagingApi.login", arg);});
           socket.on('auth.login-ng', function(arg){ showModal([arg], { ok : true }); });
@@ -63,36 +63,21 @@ function uuid() {
 
           //lobby api
           socket.on('receivePlayingGames', function(data){
-            var append = function() { 
-              _( data.playingGames ).map( function(game) {
-                var tr = $("<tr>");
-                tr.append( $("<td>").append( game.end ? "終了" : "対局中" ) );
-                tr.append( $("<td>").append( game.startDateTime ) );
-                //tr.append( $("<td>").append( game.gameId) );
-                tr.append( $("<td>").append( game.account.player1.name) );
-                tr.append( $("<td>").append( game.account.player2.name) );
-                tr.append( $("<td>").append("<input type='button' value='対局を観戦する')>")
-                  .bind( "click", ( function(id) { return function() { watch( id ); }  }) (game.gameId) ));
-                tr.hide();
-                $("#table-rooms-body").append(tr);
-              });
-              $("#table-rooms-body").children().fadeIn(350);
-            };
+            var conc = function (a, b) { return a.concat(b) };
+            pages.contents = data.playingGames;
 
             if ( $("#table-rooms-body").children().length == 0 ) {
-              append();
+              pages.drawContents();
             } else {
               $("#table-rooms-body").children().fadeOut(350, function() { 
                 $("#table-rooms-body").empty(); 
-                append();
+                pages.drawContents();
               });              
             }
           });
 
           //player api
           socket.on('noticePlayerNumber', function(arg){ gTemp.node.emit( "pagingApi.game", arg); });
-
-          //socket.on('game', function(command){ gameApi.putKoma(command); });
 
           socket.on('gameMessage', function(message) {
             if (message.type == "plain") {
@@ -115,10 +100,7 @@ function uuid() {
             gTemp.node.emit( "gameApi.doCommand", command );
           });
           socket.on('endGame', function( arg ) {
-            $("#game").show();
-            $("#room").show();
-            $("#roomWatchMenu").show();
-            $("#resignButton").hide();
+            gTemp.node.emit( "pagingApi.kifu" );
             gTemp.node.emit( "gameApi.endGame", arg );
             gTemp.node.emit( "kifuApi.replayKifu", arg);
             gTemp.node.emit( "kifuApi.toEnd" );
@@ -126,10 +108,7 @@ function uuid() {
 
           //watcher api
           socket.on('kifu', function( arg ) {
-            $("#game").show();
-            $("#room").show();
-            $("#resignButton").hide();
-            $("#room-watch-menu").show();
+            gTemp.node.emit( "pagingApi.kifu" );
             gTemp.node.emit( "graphicApi.setPlayerInfo", arg.kifu.account );
             gTemp.node.emit( "kifuApi.replayKifu", arg.kifu);
             gTemp.node.emit( "kifuApi.toEnd" );
@@ -163,7 +142,7 @@ function uuid() {
         $('#kifuSelectBox').empty();
         $("#kifuInfoDiv").hide();
         $("#kifuReplayDiv").hide();
-        graphicApi.afterHideModal = function() { exitRoom(); };
+        graphicApi.afterHideModal = function() { cancelGame(); };
         showModal(["対戦相手を待っています。"], { cancel : true});
       };
 
@@ -181,42 +160,47 @@ function uuid() {
         $("#roomWatchMenu").show();
       };
       var getPlayingGames = function() {
+        $("#next-button").hide();
+        $("#back-button").hide();
+        $("#update-playing-games-button").show();
+        pages.initPage();
+        pages.activatePageButton();
         $("#lobby-menu").hide();
         $("#lobby-watch").show();
         $("#update-playing-games-button").show();
         socket.emit('getPlayingGames', ""); 
       };
       var getMyHistory = function() {
+        $("#next-button").show();
+        $("#back-button").show();
+        $("#update-playing-games-button").hide();
+        pages.initPage();
+        pages.activatePageButton();
+        $("#table-rooms-body").empty();
+
         $("#lobby-menu").hide();
         $("#lobby-watch").show();
-        $("#update-playing-games-button").hide();
         socket.emit('getHistory', ""); 
+      };
+      var cancelGame = function() {
+        socket.emit('room', { method : "exitRoom" } ); 
+        socket.emit('getPlayingGames', "");
+        gTemp.node.emit( "kifuApi.stop" );
       };
       var exitRoom = function() {
         gTemp.node.emit( "pagingApi.exitRoom" );
         
         socket.emit('room', { method : "exitRoom" } ); 
-        socket.emit('getPlayingGames', "");
+        getPlayingGames();
         gTemp.node.emit( "kifuApi.stop" );
       };
       var connect = function(type) {
         socket = getSocket();
-        //{auth : '99582607:49985c25'}
         if (type === "account") {
           socket.emit( 'auth.login', { auth : $("#loginstr").val() } );
         } else {
           socket.emit( 'auth.guestlogin', { name : $("#loginstr").val() } );
         }
-      };
-
-      var showLobby = function() {
-        $("#lobby").show();
-        $("#lobby-login").show();
-        $("#lobby-menu").show();
-        $("#lobby-logout").hide();
-        $("#room").hide();
-        $("#roomWatchMenu").hide();
-        $("#lobby-watch").hide();
       };
 
       var showModal = function(texts, option) {
@@ -243,6 +227,54 @@ function uuid() {
           $("#modal-message").append($('<div>').text(text));
         });
       };
+      var pages = {
+        itemNum     : 20,
+        currentPage : 0,
+        contents    : [],
+        getPageMax         : function() { return parseInt( this.contents.length / this.itemNum) },
+        activatePageButton : function() {
+          $('#back-button').prop('disabled', this.currentPage <= 0 );
+          $('#next-button').prop('disabled', this.currentPage >= this.getPageMax() );
+        },
+        fixPageIndex : function() {
+          var pageMax = this.getPageMax();
+          if ( this.currentPage > pageMax ) this.currentPage = pageMax;
+          if ( this.currentPage < 0 ) this.currentPage = 0;
+        },
+        pageNext : function() {
+          this.currentPage++;
+          this.fixPageIndex();
+          this.activatePageButton();
+        },
+        pageBack : function() {
+          this.currentPage--;
+          this.fixPageIndex();
+          this.activatePageButton();
+        },
+        initPage : function() {
+          this.currentPage = 0;
+          this.contents = [];
+        },
+        drawContents : function() {
+          _( this.contents ).map( function(game, index) {
+            if ( pages.currentPage*pages.itemNum <= index && index <= (pages.currentPage+1)*pages.itemNum ) {
+              var tr = $("<tr>");
+              tr.append( $("<td>").append( game.end ? "終了" : "対局中" ) );
+              tr.append( $("<td>").append( game.startDateTime ) );
+              //tr.append( $("<td>").append( game.gameId) );
+              tr.append( $("<td>").append( game.account.player1.name) );
+              tr.append( $("<td>").append( game.account.player2.name) );
+              tr.append( $("<td>").append("<input type='button' value='対局を観戦する')>")
+                .bind( "click", ( function(id) { return function() { watch( id ); }  }) (game.gameId) ));
+              tr.hide();
+              $("#table-rooms-body").append(tr);
+            }
+          });
+          $("#table-rooms-body").children().fadeIn(350);
+        }
+      };
+
+
     </script>
   </head>
   <body>
@@ -269,8 +301,10 @@ function uuid() {
             <input type='button' class='menu-button' value='対局履歴' onClick='getMyHistory()' />
           </div>
           <div id='lobby-watch'>
-            <input type='button' id='back-to-loby-button' class='menu-button' value='戻る' onClick='showLobby()' />
+            <input type='button' id='back-to-loby-button' class='menu-button' value='戻る' onClick='gTemp.node.emit( "pagingApi.showLoby" );' />
             <input type='button' id='update-playing-games-button' class='menu-button' value='更新' onClick='getPlayingGames()' />
+            <input type='button' id='back-button' class='menu-button' value='前へ' onClick='pages.pageBack();' />
+            <input type='button' id='next-button' class='menu-button' value='次へ' onClick='pages.pageNext();' />
             <table id='table-rooms'>
               <thead>
               <tr>

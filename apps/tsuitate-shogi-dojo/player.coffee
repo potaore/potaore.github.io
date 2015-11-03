@@ -1,5 +1,5 @@
 listenlist = 
-  "gameApi.getBord" : true
+  "VVVV" : true
 
 class Socket
   constructor : (@nodeApi, @params) -> 
@@ -937,10 +937,15 @@ node.connect({name : "soundApi"}, (soundApiSocket) ->
 
 node.connect( {name : "pagingApi"}, (pagingApiSocket) -> 
 
+  g$all = (predicate) -> (list) -> _(list).each( (item) -> predicate(item) )
+  hideAll  = g$all( (selector) -> $(selector).hide()  )
+  showAll  = g$all( (selector) -> $(selector).show()  )
+  emptyAll = g$all( (selector) -> $(selector).empty() )
+
   pagingApiSocket.on( "pagingApi.login", (arg) ->
+    $("#lobby-logout").hide()
     $("#lobby-login").show()
     $("#chatDiv").slideDown(500)
-    $("#lobby-logout").hide()
     $("#account-icon").empty()
     $("#account-icon").append(domFinder.getIconImage(arg.account.profile_url, arg.account.character))
     $("#account-name").empty()
@@ -951,19 +956,12 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
     $("#messages").append($('<li>').addClass('system-info').text("サーバーとの接続が切れました。"))
     showModal(["サーバーとの接続が切れました。"], { ok : true })
     graphicApi.afterHideModal = () ->
-      $("#lobby-menu").hide()
-      $("#lobby").show()
-      $("#lobby-watch").show()
-      $("#game").hide()
-      $("#room").hide()
-      $("#lobby-logout").show()
-      $("#lobby-login").hide()
+      hideAll( ["#lobby-menu", "#lobby-login", "#game","#room"] )
+      showAll( ["#lobby", "#lobby-watch", "#lobby-logout"] )
   )
 
   pagingApiSocket.on( "pagingApi.game", (arg) ->
-      $("#game").show()
-      $("#room").show()
-      $("#resignButton").show()
+      showAll( ["#game", "#room", "#resignButton"] )
       $("#lobby").hide()
       graphicApi.afterHideModal = undefined
       gTemp.node.emit( "graphicApi.hideModal" )
@@ -975,11 +973,18 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
       gTemp.node.emit( "graphicApi.setPlayerInfo", arg.account )
   )
 
+  pagingApiSocket.on( "pagingApi.kifu", (arg) ->
+      showAll( ["#game", "#room", "#roomWatchMenu"] )
+      hideAll( ["#resignButton"] )
+  )
+
+  pagingApiSocket.on( "pagingApi.showLoby", (arg) ->
+      showAll( ["#lobby", "#lobby-login", "#lobby-menu"] )
+      hideAll( ["#lobby-logout", "#room", "#roomWatchMenu", "#lobby-watch"] )
+  )
+
   pagingApiSocket.on( "pagingApi.exitRoom", (arg) ->
-      $("#lobby-menu").hide();
-      $("#lobby").show();
-      $("#lobby-watch").show();
-      $("#game").hide();
-      $("#room").hide();
+      showAll( ["#lobby", "#lobby-watch"] )
+      hideAll( ["#game", "#room", "#lobby-menu"] )
   )
 )
