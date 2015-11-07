@@ -827,7 +827,7 @@
           return window.setTimeout(updateTimer, 500);
         };
       })(this);
-      return updateTimer();
+      return window.setTimeout(updateTimer, 200);
     };
 
     Game.prototype.isPlayerTurn = function() {
@@ -1016,6 +1016,9 @@
       return gameApiSocket.broadcast.emit("graphicApi.redrawKoma", game);
     });
     gameApiSocket.on("gameApi.endGame", function(info) {
+      gameApiSocket.broadcast.emit("graphicApi.noticeOute", {
+        oute: false
+      });
       game.end();
       return gameApiSocket.broadcast.emit("graphicApi.redrawKoma", game);
     });
@@ -1055,6 +1058,8 @@
           game.getCurrentPlayer().life--;
           gameApiSocket.broadcast.emit("graphicApi.updateGameInfo", game.getPlayerInfoCommand());
           return isFoul = true;
+        } else if (command.method === "noticeOute") {
+          return gameApiSocket.broadcast.emit("graphicApi.noticeOute", command);
         }
       });
       if (isFoul) {
@@ -1076,6 +1081,7 @@
     function BordCanvas(selector, onmouseDown) {
       this.selector = selector;
       this.onmouseDown = onmouseDown;
+      this.noticeOute = __bind(this.noticeOute, this);
       this.checkCell = __bind(this.checkCell, this);
       this.putKoma = __bind(this.putKoma, this);
       this.init = __bind(this.init, this);
@@ -1128,6 +1134,16 @@
       this.loadCanvas();
       this.ctx.fillStyle = "rgba(256, 150, 150, 0.5)";
       return this.ctx.fillRect(position.x * 60, position.y * 64, 60, 64);
+    };
+
+    BordCanvas.prototype.noticeOute = function() {
+      this.loadCanvas();
+      this.ctx.lineWidth = 3;
+      this.ctx.strokeStyle = "rgba(256, 80, 80, 0.9)";
+      this.ctx.fillStyle = "rgba(255, 10, 30, 0.7)";
+      this.ctx.font = "bold 48px 'Arial'";
+      this.ctx.textAlign = 'center';
+      return this.ctx.strokeText("王手！", this.canvas.width / 2, this.canvas.height / 2);
     };
 
     return BordCanvas;
@@ -1261,7 +1277,8 @@
       return showPutableCell(koma.playerNumber, koma.komaType);
     });
     params = {
-      flip: false
+      flip: false,
+      oute: false
     };
     graphicApiSocket.on("graphicApi.updateGameInfo", function(command) {
       domFinder.getGameInfoDiv(1, params.flip).empty();
@@ -1286,11 +1303,14 @@
     };
     drawKoma = function(arg) {
       var komadai1, komadai2;
+      if (graphicApi.invatedPosition) {
+        bordCanvas.checkCell(util.posFlipX(util.posFlip(graphicApi.invatedPosition, params.flip)));
+      }
       komadai1 = params.flip ? komadai2Canvas : komadai1Canvas;
       komadai2 = params.flip ? komadai1Canvas : komadai2Canvas;
       komadai1.drawKoma(arg.board.komaDai[0], params.flip);
       komadai2.drawKoma(arg.board.komaDai[1], params.flip);
-      return util.allPos(function(x, y) {
+      util.allPos(function(x, y) {
         var koma;
         koma = arg.board.getKoma({
           x: x,
@@ -1303,6 +1323,9 @@
           }, params.flip)));
         }
       });
+      if (params.oute) {
+        return bordCanvas.noticeOute();
+      }
     };
     graphicApiSocket.on("graphicApi.redrawKoma", redrawKoma);
     showMovableCell = function(fromPos) {
@@ -1413,7 +1436,9 @@
       });
     };
     clearKoma = function() {
-      return bordCanvas.init();
+      bordCanvas.init();
+      komadai1Canvas.init();
+      return komadai2Canvas.init();
     };
     graphicApiSocket.on("graphicApi.clearTable", function() {
       clearKoma();
@@ -1422,9 +1447,6 @@
     initializeTableState = function() {
       graphicApi.moveToPositions = [];
       graphicApi.putToPositions = [];
-      if (graphicApi.invatedPosition) {
-        bordCanvas.checkCell(util.posFlipX(util.posFlip(graphicApi.invatedPosition, params.flip)));
-      }
       return bordCanvas.init();
     };
     graphicApiSocket.on("graphicApi.initializeTableState", initializeTableState);
@@ -1441,13 +1463,16 @@
       params.flip = flip;
       return redrawKoma(game);
     });
-    return graphicApiSocket.on("graphicApi.hideModal", function() {
+    graphicApiSocket.on("graphicApi.hideModal", function() {
       $("#modal-window").hide();
       $("#modal-overlay").hide();
       if (graphicApi.afterHideModal) {
         graphicApi.afterHideModal();
         return graphicApi.afterHideModal = void 0;
       }
+    });
+    return graphicApiSocket.on("graphicApi.noticeOute", function(command) {
+      return params.oute = command.oute;
     });
   });
 
@@ -1669,12 +1694,12 @@
       graphicApi.afterHideModal = void 0;
       gTemp.node.emit("graphicApi.hideModal");
       gTemp.node.emit("gameApi.startGame", arg);
+      gTemp.node.emit("graphicApi.setPlayerInfo", arg.account);
       if (arg.playerNumber === 2) {
-        gTemp.node.emit("graphicApi.flipBord", true);
+        return gTemp.node.emit("graphicApi.flipBord", true);
       } else {
-        gTemp.node.emit("graphicApi.flipBord", false);
+        return gTemp.node.emit("graphicApi.flipBord", false);
       }
-      return gTemp.node.emit("graphicApi.setPlayerInfo", arg.account);
     });
     pagingApiSocket.on("pagingApi.kifu", function(arg) {
       showAll(["#game", "#room", "#roomWatchMenu"]);

@@ -387,7 +387,7 @@ class Game
           playerNumber : 2-@turn%2
         )
       window.setTimeout(updateTimer, 500)
-    updateTimer()
+    window.setTimeout(updateTimer, 200)
 
   isPlayerTurn : () -> 2-@turn%2 is @playerNumber
 
@@ -500,6 +500,7 @@ node.connect({name : "gameApi"}, (gameApiSocket) ->
   )
 
   gameApiSocket.on( "gameApi.endGame", ( info ) ->
+    gameApiSocket.broadcast.emit( "graphicApi.noticeOute", { oute : false }  )
     game.end()
     gameApiSocket.broadcast.emit( "graphicApi.redrawKoma", game )
   )
@@ -541,6 +542,8 @@ node.connect({name : "gameApi"}, (gameApiSocket) ->
         game.getCurrentPlayer().life--
         gameApiSocket.broadcast.emit( "graphicApi.updateGameInfo", game.getPlayerInfoCommand() )
         isFoul = true
+      else if command.method is "noticeOute"
+        gameApiSocket.broadcast.emit( "graphicApi.noticeOute", command )
     )
     if isFoul
       gameApiSocket.broadcast.emit( "soundApi.playFoulSound" )
@@ -591,6 +594,15 @@ class BordCanvas
     @loadCanvas()
     @ctx.fillStyle = "rgba(256, 150, 150, 0.5)"
     @ctx.fillRect( position.x*60 , position.y*64, 60, 64 )
+
+  noticeOute : () =>
+    @loadCanvas()
+    @ctx.lineWidth = 3
+    @ctx.strokeStyle = "rgba(256, 80, 80, 0.9)"
+    @ctx.fillStyle = "rgba(255, 10, 30, 0.7)"
+    @ctx.font = "bold 48px 'Arial'"
+    @ctx.textAlign = 'center'
+    @ctx.strokeText("王手！", @canvas.width / 2, @canvas.height / 2 )
 
 class KomadaiCanvas
   constructor : (@selector, @onmouseDown) ->
@@ -668,6 +680,7 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
 
   params =
     flip : false
+    oute : false
 
   graphicApiSocket.on( "graphicApi.updateGameInfo", (command) ->
     domFinder.getGameInfoDiv(1, params.flip).empty()
@@ -696,6 +709,8 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
     drawKoma(arg)
 
   drawKoma = (arg) ->
+    if graphicApi.invatedPosition
+      bordCanvas.checkCell( util.posFlipX( util.posFlip( graphicApi.invatedPosition, params.flip ) ) )
     komadai1 = if params.flip then komadai2Canvas else komadai1Canvas
     komadai2 = if params.flip then komadai1Canvas else komadai2Canvas
     komadai1.drawKoma( arg.board.komaDai[0], params.flip )
@@ -705,6 +720,7 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
       if koma
         bordCanvas.putKoma( domFinder.getKomaImage2(koma, params.flip), util.posFlipX( util.posFlip( { x : x , y : y }, params.flip ) ) )
     )
+    bordCanvas.noticeOute() if params.oute
 
   graphicApiSocket.on( "graphicApi.redrawKoma", redrawKoma )
 
@@ -779,6 +795,8 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
 
   clearKoma = ->
     bordCanvas.init()
+    komadai1Canvas.init()
+    komadai2Canvas.init()
 
   graphicApiSocket.on( "graphicApi.clearTable", ->
     clearKoma()
@@ -788,8 +806,6 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
   initializeTableState = ->
     graphicApi.moveToPositions = []
     graphicApi.putToPositions = []
-    if graphicApi.invatedPosition
-      bordCanvas.checkCell( util.posFlipX( util.posFlip( graphicApi.invatedPosition, params.flip ) ) )
     bordCanvas.init()
 
   graphicApiSocket.on( "graphicApi.initializeTableState", initializeTableState )
@@ -810,6 +826,8 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
       graphicApi.afterHideModal()
       graphicApi.afterHideModal = undefined
   )
+
+  graphicApiSocket.on( "graphicApi.noticeOute", (command) -> params.oute = command.oute )
 )
 
 domFinder = 
@@ -966,11 +984,11 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
       graphicApi.afterHideModal = undefined
       gTemp.node.emit( "graphicApi.hideModal" )
       gTemp.node.emit( "gameApi.startGame", arg )
+      gTemp.node.emit( "graphicApi.setPlayerInfo", arg.account )
       if( arg.playerNumber is 2 )
         gTemp.node.emit( "graphicApi.flipBord", true )
       else
         gTemp.node.emit( "graphicApi.flipBord", false )
-      gTemp.node.emit( "graphicApi.setPlayerInfo", arg.account )
   )
 
   pagingApiSocket.on( "pagingApi.kifu", (arg) ->
