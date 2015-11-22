@@ -4,13 +4,14 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <title>ついたて将棋道場</title>
+    
     <link rel="stylesheet" type="text/css" href="tsuitate.css">
     <script>
       var gameApi = {}; 
       var api = {};
       var graphicApi = {};
       var kifuApi = {};
-      var gTemp = {};
+      var _global = {};
 function uuid() {
   var uuid = "", i, random;
   for (i = 0; i < 32; i++) {
@@ -32,6 +33,7 @@ function uuid() {
     <script>
       $(document).ready( function() {
         loadSounds();
+        _global.setIconSelector();
       });
       var socket = null;
       var getSocket = function () {
@@ -39,9 +41,9 @@ function uuid() {
           socket = io.connect('http://133.130.72.92:8888');
           //socket = io.connect('http://localhost:8888');
 
-          socket.on('auth.login-ok', function(arg){ gTemp.node.emit( "pagingApi.login", arg);});
+          socket.on('auth.login-ok', function(arg){ _global.node.emit( "pagingApi.login", arg);});
           socket.on('auth.login-ng', function(arg){ showModal([arg], { ok : true }); });
-          socket.on('disconnect', function(arg){ gTemp.node.emit( "pagingApi.logout", arg); });
+          socket.on('disconnect', function(arg){ _global.node.emit( "pagingApi.logout", arg); });
 
           socket.on('message', function(arg){
             if( arg.type === "system-info" ) {
@@ -49,7 +51,7 @@ function uuid() {
             } else {
               $("#messages").append($('<li>').text(arg.message));
               if( arg.message.match( /sound\((.+?)\)/ ) ) {
-                gTemp.node.emit( "soundApi.playSound", RegExp.$1);
+                _global.node.emit( "soundApi.playSound", RegExp.$1);
               }
             }
             $('#chatMessageDiv').scrollTop($('#messages').height());
@@ -76,8 +78,16 @@ function uuid() {
             }
           });
 
+          socket.on('receiveProfile', function(data) {
+            $("#lobby-profile-content").empty();
+            _( data.profile ).each( function(item) {
+              $("#lobby-profile-content").append("<p>" + item.name + ":" + item.value + "</p>");
+            });
+            
+          });
+
           //player api
-          socket.on('noticePlayerNumber', function(arg){ gTemp.node.emit( "pagingApi.game", arg); });
+          socket.on('noticePlayerNumber', function(arg){ _global.node.emit( "pagingApi.game", arg); });
 
           socket.on('gameMessage', function(message) {
             if (message.type == "plain") {
@@ -97,26 +107,26 @@ function uuid() {
           });
 
           socket.on('command', function(command){
-            gTemp.node.emit( "gameApi.doCommand", command );
+            _global.node.emit( "gameApi.doCommand", command );
           });
           socket.on('endGame', function( arg ) {
-            gTemp.node.emit( "pagingApi.kifu" );
-            gTemp.node.emit( "gameApi.endGame", arg );
-            gTemp.node.emit( "kifuApi.replayKifu", arg);
-            gTemp.node.emit( "kifuApi.toEnd" );
+            _global.node.emit( "pagingApi.kifu" );
+            _global.node.emit( "gameApi.endGame", arg );
+            _global.node.emit( "kifuApi.replayKifu", arg);
+            _global.node.emit( "kifuApi.toEnd" );
           });
 
           //watcher api
           socket.on('kifu', function( arg ) {
-            gTemp.node.emit( "pagingApi.kifu" );
-            gTemp.node.emit( "graphicApi.setPlayerInfo", arg.kifu.account );
-            gTemp.node.emit( "kifuApi.replayKifu", arg.kifu);
-            gTemp.node.emit( "kifuApi.toEnd" );
-            gTemp.node.emit( "kifuApi.setElapsedTime", arg.elapsedTime );
+            _global.node.emit( "pagingApi.kifu" );
+            _global.node.emit( "graphicApi.setPlayerInfo", arg.kifu.account );
+            _global.node.emit( "kifuApi.replayKifu", arg.kifu);
+            _global.node.emit( "kifuApi.toEnd" );
+            _global.node.emit( "kifuApi.setElapsedTime", arg.elapsedTime );
           });
           socket.on('distributeKifu', function( arg ) {
-            gTemp.node.emit( "kifuApi.addKifu", arg.te);
-            gTemp.node.emit( "kifuApi.toEnd" );
+            _global.node.emit( "kifuApi.addKifu", arg.te);
+            _global.node.emit( "kifuApi.toEnd" );
           });
         }
 
@@ -134,9 +144,9 @@ function uuid() {
 
 
 
-      var startGame = function() {
+      var startGame = function( type ) {
         socket = getSocket();
-        socket.emit('room', { method : "startGame"} ); 
+        socket.emit('room', { method : "startGame", type : type } ); 
         $("#gameMessageArea").empty();
         $("#roomWatchMenu").hide();
         $('#kifuSelectBox').empty();
@@ -153,7 +163,7 @@ function uuid() {
 
       var watch= function(gameId) {
         socket = getSocket();
-        gTemp.node.emit( "graphicApi.clearTable" );
+        _global.node.emit( "graphicApi.clearTable" );
         socket.emit('room',  { method : "watch", gameId : gameId } );
         $("#gameMessageArea").empty();
         $("#lobby").hide();
@@ -163,43 +173,53 @@ function uuid() {
         $("#next-button").hide();
         $("#back-button").hide();
         $("#update-playing-games-button").show();
+        $("#lobby-profile").hide();
         pages.initPage();
         pages.activatePageButton();
         $("#lobby-menu").hide();
         $("#lobby-watch").show();
         $("#update-playing-games-button").show();
+        $("#lobby-profile").hide();
         socket.emit('getPlayingGames', ""); 
       };
       var getMyHistory = function() {
         $("#next-button").show();
         $("#back-button").show();
         $("#update-playing-games-button").hide();
+        $("#lobby-profile").hide();
         pages.initPage();
         pages.activatePageButton();
         $("#table-rooms-body").empty();
-
         $("#lobby-menu").hide();
         $("#lobby-watch").show();
         socket.emit('getHistory', ""); 
       };
+      var profile = function() {
+        $("#lobby-menu").hide();
+        $("#lobby-profile").show();
+        socket.emit('getProfile', ""); 
+      };
       var cancelGame = function() {
         socket.emit('room', { method : "exitRoom" } ); 
         socket.emit('getPlayingGames', "");
-        gTemp.node.emit( "kifuApi.stop" );
+        _global.node.emit( "kifuApi.stop" );
       };
       var exitRoom = function() {
-        gTemp.node.emit( "pagingApi.exitRoom" );
+        _global.node.emit( "pagingApi.exitRoom" );
         
         socket.emit('room', { method : "exitRoom" } ); 
         getPlayingGames();
-        gTemp.node.emit( "kifuApi.stop" );
+        _global.node.emit( "kifuApi.stop" );
       };
       var connect = function(type) {
         socket = getSocket();
         if (type === "account") {
-          socket.emit( 'auth.login', { auth : $("#loginstr").val() } );
+          socket.emit( 'auth.login', { auth : $("#loginstr").val(), character : _global.character } );
         } else {
-          socket.emit( 'auth.guestlogin', { name : $("#loginstr").val() } );
+          if( _global.character === null || _global.character === undefined ) {
+            _global.character = _global.getRandomCharacter();
+          }
+          socket.emit( 'auth.guestlogin', { name : $("#loginstr").val(), character : _global.character } );
         }
       };
 
@@ -293,15 +313,22 @@ function uuid() {
           <input id='loginstr' type='text' class='menu-textbox' maxlength="20" placeholder="認証文字列またはゲストログイン名" />
           <input id='loginbutton' type='button' class='menu-button' value='ログイン' onClick='connect("account")' />
           <input id='guestloginbutton' type='button' class='menu-button' value='ゲストログイン' onClick='connect("guest")' />
+          <div>
+            使用するアイコンを選択してください
+          </div>
+          <div id='icon-selector'>
+          </div>
         </div>
         <div id='lobby-login'>
           <div id='lobby-menu'>
-            <input type='button' class='menu-button' value='対戦する' onClick='startGame()' />
+            <input type='button' class='menu-button' value='フリー対局' onClick='startGame("free")' />
+            <input type='button' class='menu-button' value='レーティング対局' onClick='startGame("rating")' />
             <input type='button' class='menu-button' value='観戦する' onClick='getPlayingGames()' />
             <input type='button' class='menu-button' value='対局履歴' onClick='getMyHistory()' />
+            <input type='button' class='menu-button' value='プロフィール' onClick='profile()' />
           </div>
           <div id='lobby-watch'>
-            <input type='button' id='back-to-loby-button' class='menu-button' value='戻る' onClick='gTemp.node.emit( "pagingApi.showLoby" );' />
+            <input type='button' id='back-to-loby-button' class='menu-button' value='戻る' onClick='_global.node.emit( "pagingApi.showLoby" );' />
             <input type='button' id='update-playing-games-button' class='menu-button' value='更新' onClick='getPlayingGames()' />
             <input type='button' id='back-button' class='menu-button' value='前へ' onClick='pages.pageBack();' />
             <input type='button' id='next-button' class='menu-button' value='次へ' onClick='pages.pageNext();' />
@@ -319,6 +346,10 @@ function uuid() {
               <tbody id='table-rooms-body'>
               </tbody>
             </table>
+          </div>
+          <div id='lobby-profile'>
+            <input type='button' id='back-to-loby-button' class='menu-button' value='戻る' onClick='_global.node.emit( "pagingApi.showLoby" );' />
+            <div id='lobby-profile-content'></div>
           </div>
         </div>
       </div>
@@ -356,10 +387,10 @@ function uuid() {
             <select size="16" id="kifuSelectBox"></select>
           </div>
           <div id="kifuReplayDiv">
-            <input type='button' id='toStartButton' class='control-button' value='←←' onClick='gTemp.node.emit( "kifuApi.toStart" );' />
-            <input type='button' id='backButton'    class='control-button' value='←'   onClick='gTemp.node.emit( "kifuApi.back" );' />
-            <input type='button' id='nextButton'    class='control-button' value='→'   onClick='gTemp.node.emit( "kifuApi.next" );' />
-            <input type='button' id='toEndButton'   class='control-button' value='→→' onClick='gTemp.node.emit( "kifuApi.toEnd" );' />
+            <input type='button' id='toStartButton' class='control-button' value='←←' onClick='_global.node.emit( "kifuApi.toStart" );' />
+            <input type='button' id='backButton'    class='control-button' value='←'   onClick='_global.node.emit( "kifuApi.back" );' />
+            <input type='button' id='nextButton'    class='control-button' value='→'   onClick='_global.node.emit( "kifuApi.next" );' />
+            <input type='button' id='toEndButton'   class='control-button' value='→→' onClick='_global.node.emit( "kifuApi.toEnd" );' />
           </div>
           <div id="gameMessageAreaDiv" class="gameMessage"><ui id="gameMessageArea"></ui></div>
         </div>
@@ -367,14 +398,14 @@ function uuid() {
 
         <div id="nariDiv" class="modal-window">
           <div>成りますか？</div>
-          <input type='button' id='nariButton'    class='confirm-button' value='成'   onClick='gTemp.node.emit( "graphicApi.nari", true );' />
-          <input type='button' id='notNariButton' class='confirm-button' value='不成' onClick='gTemp.node.emit( "graphicApi.nari", false );' />
+          <input type='button' id='nariButton'    class='confirm-button' value='成'   onClick='_global.node.emit( "graphicApi.nari", true );' />
+          <input type='button' id='notNariButton' class='confirm-button' value='不成' onClick='_global.node.emit( "graphicApi.nari", false );' />
         </div>
       </div>
       <div id="modal-window" class="modal-window">
         <div id="modal-message"></div>
-        <input type='button' id='modalConfirmButton' class='confirm-button' value='OK' onClick='gTemp.node.emit( "graphicApi.hideModal" );' />
-        <input type='button' id='modalCancelButton'  class='confirm-button' value='キャンセル' onClick='gTemp.node.emit( "graphicApi.hideModal" );' />
+        <input type='button' id='modalConfirmButton' class='confirm-button' value='OK' onClick='_global.node.emit( "graphicApi.hideModal" );' />
+        <input type='button' id='modalCancelButton'  class='confirm-button' value='キャンセル' onClick='_global.node.emit( "graphicApi.hideModal" );' />
       </div>
       <div id="modal-overlay"></div>
       </div>

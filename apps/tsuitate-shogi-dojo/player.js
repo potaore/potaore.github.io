@@ -90,7 +90,7 @@
 
   node = new Node();
 
-  gTemp.node = node;
+  _global.node = node;
 
   util = {
     isVacant: function(val) {
@@ -1515,11 +1515,11 @@
     },
     getIconImage: function(url, character) {
       var str;
-      if (url) {
-        return $("<img src='" + url + "'>");
-      } else if (character) {
+      if (character !== void 0 && character !== null) {
         str = ("0000" + character).slice(-4);
         return $("<img src='./images/icon/snap" + str + ".png'>");
+      } else if (url) {
+        return $("<img src='" + url + "'>");
       } else {
         return $("<img src='./images/icon/noname.jpeg'>");
       }
@@ -1676,6 +1676,7 @@
       $("#account-icon").empty();
       $("#account-icon").append(domFinder.getIconImage(arg.account.profile_url, arg.account.character));
       $("#account-name").empty();
+      $("#lobby-profile").hide();
       return $("#account-name").append("\"" + arg.account.name + "\" さん ごきげんよう");
     });
     pagingApiSocket.on("pagingApi.logout", function() {
@@ -1692,14 +1693,14 @@
       showAll(["#game", "#room", "#resignButton"]);
       $("#lobby").hide();
       graphicApi.afterHideModal = void 0;
-      gTemp.node.emit("graphicApi.hideModal");
-      gTemp.node.emit("gameApi.startGame", arg);
-      gTemp.node.emit("graphicApi.setPlayerInfo", arg.account);
+      _global.node.emit("graphicApi.hideModal");
+      _global.node.emit("gameApi.startGame", arg);
       if (arg.playerNumber === 2) {
-        return gTemp.node.emit("graphicApi.flipBord", true);
+        _global.node.emit("graphicApi.flipBord", true);
       } else {
-        return gTemp.node.emit("graphicApi.flipBord", false);
+        _global.node.emit("graphicApi.flipBord", false);
       }
+      return _global.node.emit("graphicApi.setPlayerInfo", arg.account);
     });
     pagingApiSocket.on("pagingApi.kifu", function(arg) {
       showAll(["#game", "#room", "#roomWatchMenu"]);
@@ -1707,12 +1708,48 @@
     });
     pagingApiSocket.on("pagingApi.showLoby", function(arg) {
       showAll(["#lobby", "#lobby-login", "#lobby-menu"]);
-      return hideAll(["#lobby-logout", "#room", "#roomWatchMenu", "#lobby-watch"]);
+      return hideAll(["#lobby-logout", "#room", "#roomWatchMenu", "#lobby-watch", "#lobby-profile"]);
     });
     return pagingApiSocket.on("pagingApi.exitRoom", function(arg) {
       showAll(["#lobby", "#lobby-watch"]);
-      return hideAll(["#game", "#room", "#lobby-menu"]);
+      return hideAll(["#game", "#room", "#lobby-menu", "#lobby-profile"]);
     });
   });
+
+  _global.getRandomCharacter = function() {
+    return Math.floor(Math.random() * 45);
+  };
+
+  _global.setIconSelector = function() {
+    var getRandomNums, images;
+    getRandomNums = function(length) {
+      var newNum, result;
+      result = [];
+      while (result.length < length) {
+        newNum = _global.getRandomCharacter();
+        if (!_(result).contains(newNum)) {
+          result.push(newNum);
+        }
+      }
+      return result;
+    };
+    $("#icon-selector").empty();
+    images = [];
+    return _(getRandomNums(10)).each(function(num) {
+      var image;
+      image = domFinder.getIconImage(null, num);
+      image.addClass("iconCandidate");
+      $("#icon-selector").append(image);
+      return image.on("click", function() {
+        _global.character = num;
+        $(".iconCandidate").css({
+          border: "none"
+        });
+        return image.css({
+          border: "solid"
+        });
+      });
+    });
+  };
 
 }).call(this);

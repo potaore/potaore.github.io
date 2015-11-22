@@ -41,7 +41,7 @@ class Node
     )
 
 node = new Node()
-gTemp.node = node 
+_global.node = node 
 
 
 util =
@@ -860,12 +860,12 @@ domFinder =
         images2.koma2[koma.komaType]
 
   getIconImage : (url, character) ->
-      if url
-        $("<img src='#{url}'>")
-      else if character
+      if character isnt undefined and character isnt null
         str = ("0000"+character).slice(-4)
         $("<img src='./images/icon/snap#{str}.png'>")
-      else 
+      else if url
+        $("<img src='#{url}'>")
+      else
         $("<img src='./images/icon/noname.jpeg'>")
 
 
@@ -967,6 +967,7 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
     $("#account-icon").empty()
     $("#account-icon").append(domFinder.getIconImage(arg.account.profile_url, arg.account.character))
     $("#account-name").empty()
+    $("#lobby-profile").hide()
     $("#account-name").append("\"#{arg.account.name}\" さん ごきげんよう")
   )
 
@@ -982,13 +983,13 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
       showAll( ["#game", "#room", "#resignButton"] )
       $("#lobby").hide()
       graphicApi.afterHideModal = undefined
-      gTemp.node.emit( "graphicApi.hideModal" )
-      gTemp.node.emit( "gameApi.startGame", arg )
-      gTemp.node.emit( "graphicApi.setPlayerInfo", arg.account )
+      _global.node.emit( "graphicApi.hideModal" )
+      _global.node.emit( "gameApi.startGame", arg )
       if( arg.playerNumber is 2 )
-        gTemp.node.emit( "graphicApi.flipBord", true )
+        _global.node.emit( "graphicApi.flipBord", true )
       else
-        gTemp.node.emit( "graphicApi.flipBord", false )
+        _global.node.emit( "graphicApi.flipBord", false )
+      _global.node.emit( "graphicApi.setPlayerInfo", arg.account )
   )
 
   pagingApiSocket.on( "pagingApi.kifu", (arg) ->
@@ -998,11 +999,34 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
 
   pagingApiSocket.on( "pagingApi.showLoby", (arg) ->
       showAll( ["#lobby", "#lobby-login", "#lobby-menu"] )
-      hideAll( ["#lobby-logout", "#room", "#roomWatchMenu", "#lobby-watch"] )
+      hideAll( ["#lobby-logout", "#room", "#roomWatchMenu", "#lobby-watch", "#lobby-profile"] )
   )
 
   pagingApiSocket.on( "pagingApi.exitRoom", (arg) ->
       showAll( ["#lobby", "#lobby-watch"] )
-      hideAll( ["#game", "#room", "#lobby-menu"] )
+      hideAll( ["#game", "#room", "#lobby-menu", "#lobby-profile"] )
   )
 )
+
+_global.getRandomCharacter = () -> Math.floor( Math.random() * 45 )
+_global.setIconSelector = () ->  
+  getRandomNums = ( length ) ->
+    result = []
+    while( result.length < length )
+      newNum = _global.getRandomCharacter()
+      if not _( result ).contains( newNum )
+        result.push newNum
+    result
+  $("#icon-selector").empty()
+  images = []
+  _( getRandomNums(10) ).each( (num) ->
+    image = domFinder.getIconImage( null, num )
+    image.addClass("iconCandidate");
+    $("#icon-selector").append( image )
+    image.on( "click", () ->
+      _global.character = num
+      $(".iconCandidate").css( { border : "none" } )
+      image.css( { border : "solid" } )
+    )
+  )
+
