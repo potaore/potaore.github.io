@@ -215,11 +215,13 @@ function uuid() {
         socket = getSocket();
         if (type === "account") {
           socket.emit( 'auth.login', { auth : $("#loginstr").val(), character : _global.character } );
+          $(".account-only").show();
         } else {
           if( _global.character === null || _global.character === undefined ) {
             _global.character = _global.getRandomCharacter();
           }
           socket.emit( 'auth.guestlogin', { name : $("#loginstr").val(), character : _global.character } );
+          $(".account-only").hide();
         }
       };
 
@@ -322,10 +324,10 @@ function uuid() {
         <div id='lobby-login'>
           <div id='lobby-menu'>
             <input type='button' class='menu-button' value='フリー対局' onClick='startGame("free")' />
-            <input type='button' class='menu-button' value='レーティング対局' onClick='startGame("rating")' />
-            <input type='button' class='menu-button' value='観戦する' onClick='getPlayingGames()' />
-            <input type='button' class='menu-button' value='対局履歴' onClick='getMyHistory()' />
-            <input type='button' class='menu-button' value='プロフィール' onClick='profile()' />
+            <input type='button' class='menu-button account-only' value='レーティング対局' onClick='startGame("rating")' />
+            <input type='button' class='menu-button ' value='観戦する' onClick='getPlayingGames()' />
+            <input type='button' class='menu-button account-only' value='対局履歴' onClick='getMyHistory()' />
+            <input type='button' class='menu-button account-only' value='プロフィール' onClick='profile()' />
           </div>
           <div id='lobby-watch'>
             <input type='button' id='back-to-loby-button' class='menu-button' value='戻る' onClick='_global.node.emit( "pagingApi.showLoby" );' />
@@ -411,7 +413,6 @@ function uuid() {
       </div>
 
       <div id="chatDiv">
-        
         <div id="chatMessageDiv">
           <ul id="messages"></ul>
         </div>
