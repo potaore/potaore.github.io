@@ -297,6 +297,48 @@ function uuid() {
       };
 
 
+      var chatDivType = "bottom";
+
+      var hideChat = function() {
+        $("#chatMessageDiv").hide(240);
+        $("#chatForm").hide(240);
+        if( chatDivType == "right" ) {
+          $("#chatDiv").height(30);
+        }
+      };
+      var showChat = function() {
+        $("#chatMessageDiv").show(240);
+        $("#chatForm").show(240);
+        if( chatDivType == "right" ) {
+          setChatDivHeight();
+        }
+      };
+
+      var togglePossition = function() {
+        if ( chatDivType == "bottom" ) {
+          var titleHeight = $("#title").height();
+          var documentHeight = $(document).height();
+          var chatFormHeight = $("#chatForm").height();
+          $("#chatDiv").css({"top": titleHeight, "right": 0, "width": "400px"});
+          setChatDivHeight();
+          $("#chatMessageDiv").css({"max-height": "100%"});
+          $("#chatMessageDiv").height(documentHeight-chatFormHeight-titleHeight);
+          chatDivType = "right";
+        } else {
+          $("#chatDiv").css({"top": "", "bottom": 0, "width": "100%", "height": "auto"});
+          $("#chatMessageDiv").height(150);
+          $("#chatMessageDiv").css({"max-height": "150px", "height": "150px"});
+          chatDivType = "bottom";
+        }
+      };
+
+      var setChatDivHeight = function() {
+        var titleHeight = $("#title").height();
+        var documentHeight = $(document).height();
+        $("#chatDiv").height(documentHeight - titleHeight, 240);
+      }
+
+
     </script>
   </head>
   <body>
@@ -404,6 +446,22 @@ function uuid() {
           <input type='button' id='notNariButton' class='confirm-button' value='不成' onClick='_global.node.emit( "graphicApi.nari", false );' />
         </div>
       </div>
+
+      <div id="chatDiv">
+        <div id="chatDivMenu">
+          <input type='button' id='hideButton' class='control-button' onClick="hideChat()" value='-' />
+          <input type='button' id='showButton' class='control-button' onClick="showChat()" value='+' />
+          <input type='button' id='toggleButton' class='control-button' onClick="togglePossition()" value='⊿' />
+        </div>
+      
+        <div id="chatMessageDiv">
+          <ul id="messages"></ul>
+        </div>
+        <form id="chatForm" action="">
+          <input id="m" autocomplete="off" /><button>Send</button>
+        </form>
+      </div>
+
       <div id="modal-window" class="modal-window">
         <div id="modal-message"></div>
         <input type='button' id='modalConfirmButton' class='confirm-button' value='OK' onClick='_global.node.emit( "graphicApi.hideModal" );' />
@@ -412,13 +470,6 @@ function uuid() {
       <div id="modal-overlay"></div>
       </div>
 
-      <div id="chatDiv">
-        <div id="chatMessageDiv">
-          <ul id="messages"></ul>
-        </div>
-        <form action="">
-          <input id="m" autocomplete="off" /><button>Send</button>
-        </form>
-      </div>
+
   </body>
 </html>

@@ -1717,7 +1717,7 @@
   });
 
   _global.getRandomCharacter = function() {
-    return Math.floor(Math.random() * 45);
+    return Math.floor(Math.random() * 46);
   };
 
   _global.setIconSelector = function() {

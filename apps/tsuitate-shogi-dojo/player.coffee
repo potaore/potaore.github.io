@@ -1008,7 +1008,7 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
   )
 )
 
-_global.getRandomCharacter = () -> Math.floor( Math.random() * 45 )
+_global.getRandomCharacter = () -> Math.floor( Math.random() * 46 )
 _global.setIconSelector = () ->  
   getRandomNums = ( length ) ->
     result = []
