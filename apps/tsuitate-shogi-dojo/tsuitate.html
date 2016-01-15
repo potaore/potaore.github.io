@@ -62,7 +62,7 @@ function uuid() {
             $("#connection-info").empty();
             $("#connection-info").append( $("<span>" + "接続数:" + info.connectionCount + "</span><br>" + "<span>" + "対局数:" + info.playingGameCount + "</span>") );
             $("#freeButton").val("フリー対局:待" + info.matchingGameCount)
-            $("#raitingButton").val("レーティング対局:待" + info.matchingGameRating)
+            $("#raitingButton").val("レーティング対局:待" + info.matchingGameRatingCount)
           });
 
           //lobby api
