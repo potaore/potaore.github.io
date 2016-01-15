@@ -5,7 +5,7 @@ body {
 }
 
 form { padding: 0; width: 100%; bottom: 0; }
-form input { border: 0; padding: 10px; width: 90%; background: rgb(230, 255, 240);}
+#m { border: 0; padding: 10px; width: 90%; background: rgb(230, 255, 240);}
 form button { width: 10%; background: rgb(130, 224, 255); border: none; padding: 10px; }
 .chattoolbutton { width: 10%; background: rgb(130, 224, 255); border: none; padding: 10px; }
 
@@ -45,7 +45,7 @@ li.system-info { color : #FFFF99;}
 
 #connection-info {
   color   : white;
-  padding : 25px 15px 15px 15px;
+  padding : 15px 15px 15px 15px;
   position: relative;
   float: right;
   bottom: 0px;

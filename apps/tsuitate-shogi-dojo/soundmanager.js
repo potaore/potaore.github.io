@@ -9,6 +9,8 @@ function loadSounds() {
     { name : "koma"                , system : true  , source : "./sound/japanese-chess-piece1.mp3" },
     { name : "foul"                , system : true  , source : "./sound/cancel2.mp3" },
     { name : "start"               , system : true  , source : "./sound/drum-japanese1.mp3" },
+    { name : "oute"                , system : true  , source : "./sound/decision10.mp3" },
+    { name : "get"                 , system : true  , source : "./sound/cursor9.mp3" },
     { name : "拍手1"               , system : false , source : "./sound/clapping-hands1.mp3" },
     { name : "拍手2"               , system : false , source : "./sound/clapping-hands2.mp3" },
     { name : "ドンドンパフパフ"    , system : false , source : "./sound/dondonpafupafu1.mp3" },

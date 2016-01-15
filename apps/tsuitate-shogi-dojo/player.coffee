@@ -375,6 +375,7 @@ class Game
     @currentTime = Date.now()
 
     updateTimer = () =>
+      return if currentRoom is "lobby"
       return if @state isnt "playing"
       oldTime = @currentTime
       @currentTime = Date.now()
@@ -481,6 +482,7 @@ class KifuPlayer
 
   activateUpdateTimer : ()->
     updateTimer = () =>
+      return if currentRoom is "lobby"
       return updateTimer = null if @index isnt @boards.length-1
       return updateTimer = null if @boards[@boards.length-1].endGame
       return updateTimer = null if kifuApi.state isnt "replay"
@@ -523,6 +525,8 @@ node.connect({name : "gameApi"}, (gameApiSocket) ->
     isFoul = false
     bkInvated = graphicApi.invatedPosition
     graphicApi.invatedPosition = null
+    getKomaFlag = false
+    outeFlag = false
     _(commands).each((command) ->
       if command.method is "removeKomaFromKomadai"
         game.board.removeKomaFromKomadai(command.playerNumber, command.koma.komaType)
@@ -543,14 +547,23 @@ node.connect({name : "gameApi"}, (gameApiSocket) ->
         gameApiSocket.broadcast.emit( "graphicApi.updateGameInfo", game.getPlayerInfoCommand() )
         isFoul = true
       else if command.method is "noticeOute"
+        outeFlag = command.oute
         gameApiSocket.broadcast.emit( "graphicApi.noticeOute", command )
+      else if command.method is "noticeGetKoma"
+        getKomaFlag = command.getKoma
     )
     if isFoul
       gameApiSocket.broadcast.emit( "soundApi.playFoulSound" )
       gameApiSocket.broadcast.emit( "graphicApi.initializeTableState" )
       graphicApi.invatedPosition = bkInvated
     else
-      gameApiSocket.broadcast.emit( "soundApi.playKomaSound" )
+      if outeFlag
+        gameApiSocket.broadcast.emit( "soundApi.playOuteSound" )
+      else if getKomaFlag
+        gameApiSocket.broadcast.emit( "soundApi.playGetSound" )
+      else
+        gameApiSocket.broadcast.emit( "soundApi.playKomaSound" )
+
       game.nextTurn()
     gameApiSocket.broadcast.emit( "graphicApi.redrawKoma", game )
   )
@@ -667,6 +680,7 @@ class KomadaiCanvas
 
 node.connect({name : "graphicApi"}, (graphicApiSocket) -> 
   bordCanvas = new BordCanvas("#board", (pos) -> 
+    return if game is null or game is undefined
     pos = util.posFlip( pos, params.flip )
     _( _( graphicApi.moveToPositions ).filter( (toPos) -> util.posEq(toPos, pos)
     )).each( (pos) -> graphicApi.movekoma(pos) )
@@ -675,8 +689,12 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
     showMovableCell(pos) 
   )
 
-  komadai1Canvas = new KomadaiCanvas("#komadai1", (koma) -> showPutableCell(koma.playerNumber, koma.komaType) )
-  komadai2Canvas = new KomadaiCanvas("#komadai2", (koma) -> showPutableCell(koma.playerNumber, koma.komaType) )
+  komadai1Canvas = new KomadaiCanvas("#komadai1", (koma) -> 
+    return if game is null or game is undefined
+    showPutableCell(koma.playerNumber, koma.komaType) )
+  komadai2Canvas = new KomadaiCanvas("#komadai2", (koma) -> 
+    return if game is null or game is undefined
+    showPutableCell(koma.playerNumber, koma.komaType) )
 
   params =
     flip : false
@@ -872,6 +890,7 @@ domFinder =
 node.connect({name : "kifuApi"}, (kifuApiSocket) -> 
 
   kifuApiSocket.on( "kifuApi.replayKifu", (arg) ->
+    game = null
     kifuApi.state = "replay"
     $('#kifuSelectBox').empty()
     $("#kifuInfoDiv").show()
@@ -946,6 +965,8 @@ node.connect({name : "kifuApi"}, (kifuApiSocket) ->
 node.connect({name : "soundApi"}, (soundApiSocket) -> 
   soundApiSocket.on( "soundApi.playStartSound", () -> playSound("start") )
   soundApiSocket.on( "soundApi.playKomaSound",  () -> playSound("koma") )
+  soundApiSocket.on( "soundApi.playOuteSound",  () -> playSound("oute") )
+  soundApiSocket.on( "soundApi.playGetSound",  () -> playSound("get") )
   soundApiSocket.on( "soundApi.playFoulSound",  () -> playSound("foul") )
   soundApiSocket.on( "soundApi.playSound",  (name) -> 
     if name isnt "koma" and name isnt "foul" and name isnt "start"
@@ -953,6 +974,7 @@ node.connect({name : "soundApi"}, (soundApiSocket) ->
   )
 )
 
+currentRoom = "lobby"
 node.connect( {name : "pagingApi"}, (pagingApiSocket) -> 
 
   g$all = (predicate) -> (list) -> _(list).each( (item) -> predicate(item) )
@@ -961,6 +983,7 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
   emptyAll = g$all( (selector) -> $(selector).empty() )
 
   pagingApiSocket.on( "pagingApi.login", (arg) ->
+    currentRoom = "lobby"
     $("#lobby-logout").hide()
     $("#lobby-login").show()
     $("#chatDiv").slideDown(500)
@@ -972,6 +995,7 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
   )
 
   pagingApiSocket.on( "pagingApi.logout", ->
+    currentRoom = "lobby"
     $("#messages").append($('<li>').addClass('system-info').text("サーバーとの接続が切れました。"))
     showModal(["サーバーとの接続が切れました。"], { ok : true })
     graphicApi.afterHideModal = () ->
@@ -980,6 +1004,7 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
   )
 
   pagingApiSocket.on( "pagingApi.game", (arg) ->
+      currentRoom = "room"
       showAll( ["#game", "#room", "#resignButton"] )
       $("#lobby").hide()
       graphicApi.afterHideModal = undefined
@@ -993,22 +1018,25 @@ node.connect( {name : "pagingApi"}, (pagingApiSocket) ->
   )
 
   pagingApiSocket.on( "pagingApi.kifu", (arg) ->
+      currentRoom = "room"
       showAll( ["#game", "#room", "#roomWatchMenu"] )
       hideAll( ["#resignButton"] )
   )
 
   pagingApiSocket.on( "pagingApi.showLoby", (arg) ->
+      currentRoom = "lobby"
       showAll( ["#lobby", "#lobby-login", "#lobby-menu"] )
       hideAll( ["#lobby-logout", "#room", "#roomWatchMenu", "#lobby-watch", "#lobby-profile"] )
   )
 
   pagingApiSocket.on( "pagingApi.exitRoom", (arg) ->
+      currentRoom = "lobby"
       showAll( ["#lobby", "#lobby-watch"] )
       hideAll( ["#game", "#room", "#lobby-menu", "#lobby-profile"] )
   )
 )
 
-_global.getRandomCharacter = () -> Math.floor( Math.random() * 46 )
+_global.getRandomCharacter = () -> Math.floor( Math.random() * 55 )
 _global.setIconSelector = () ->  
   getRandomNums = ( length ) ->
     result = []

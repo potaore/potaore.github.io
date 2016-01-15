@@ -60,7 +60,9 @@ function uuid() {
           //connection-info
           socket.on('connectionInfo', function( info ) {
             $("#connection-info").empty();
-            $("#connection-info").append( $("<span>" + "接続数:" + info.connectionCount + "</span>") );
+            $("#connection-info").append( $("<span>" + "接続数:" + info.connectionCount + "</span><br>" + "<span>" + "対局数:" + info.playingGameCount + "</span>") );
+            $("#freeButton").val("フリー対局:待" + info.matchingGameCount)
+            $("#raitingButton").val("レーティング対局:待" + info.matchingGameRating)
           });
 
           //lobby api
@@ -214,13 +216,13 @@ function uuid() {
       var connect = function(type) {
         socket = getSocket();
         if (type === "account") {
-          socket.emit( 'auth.login', { auth : $("#loginstr").val(), character : _global.character } );
+          socket.emit( 'auth.login', { auth : $("#loginstr").val().trim(), character : _global.character } );
           $(".account-only").show();
         } else {
           if( _global.character === null || _global.character === undefined ) {
             _global.character = _global.getRandomCharacter();
           }
-          socket.emit( 'auth.guestlogin', { name : $("#loginstr").val(), character : _global.character } );
+          socket.emit( 'auth.guestlogin', { name : $("#loginstr").val().trim(),character : _global.character } );
           $(".account-only").hide();
         }
       };
@@ -354,9 +356,12 @@ function uuid() {
     <div>
       <div id='lobby'>
         <div id='lobby-logout'>
+          <form id="form1" action="/login" method="POST">
           <input id='loginstr' type='text' class='menu-textbox' maxlength="20" placeholder="認証文字列またはゲストログイン名" />
-          <input id='loginbutton' type='button' class='menu-button' value='ログイン' onClick='connect("account")' />
+
+          <input id='loginbutton' type='submit' class='menu-button' value='ログイン' onClick='connect("account")' />
           <input id='guestloginbutton' type='button' class='menu-button' value='ゲストログイン' onClick='connect("guest")' />
+          </form>
           <div>
             使用するアイコンを選択してください
           </div>
@@ -365,8 +370,8 @@ function uuid() {
         </div>
         <div id='lobby-login'>
           <div id='lobby-menu'>
-            <input type='button' class='menu-button' value='フリー対局' onClick='startGame("free")' />
-            <input type='button' class='menu-button account-only' value='レーティング対局' onClick='startGame("rating")' />
+            <input id='freeButton' type='button' class='menu-button' value='フリー対局' onClick='startGame("free")' />
+            <input id='raitingButton' type='button' class='menu-button account-only' value='レーティング対局' onClick='startGame("rating")' />
             <input type='button' class='menu-button ' value='観戦する' onClick='getPlayingGames()' />
             <input type='button' class='menu-button account-only' value='対局履歴' onClick='getMyHistory()' />
             <input type='button' class='menu-button account-only' value='プロフィール' onClick='profile()' />
@@ -458,7 +463,7 @@ function uuid() {
           <ul id="messages"></ul>
         </div>
         <form id="chatForm" action="">
-          <input id="m" autocomplete="off" /><button>Send</button>
+          <input id="m" autocomplete="off" class="chat" /><button>Send</button>
         </form>
       </div>
 
@@ -469,7 +474,5 @@ function uuid() {
       </div>
       <div id="modal-overlay"></div>
       </div>
-
-
   </body>
 </html>
