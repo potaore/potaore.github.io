@@ -93,12 +93,7 @@ function uuid() {
 
           socket.on('gameMessage', function(message) {
             if (message.type == "plain") {
-              $("#gameMessageArea").empty();
-              _(message.texts).each(function(text) {
-                $("#gameMessageArea").append($('<li>').text(text));
-              });
-              $("#gameMessageArea").hide();
-              $("#gameMessageArea").show(200);
+              _global.node.emit( "graphicApi.showMessage", message );
             } else if (message.type == "modal") {
               showModal(message.texts, { ok : true });
             }
@@ -121,6 +116,7 @@ function uuid() {
           //watcher api
           socket.on('kifu', function( arg ) {
             _global.node.emit( "pagingApi.kifu" );
+            radioButtonClicked()
             _global.node.emit( "graphicApi.setPlayerInfo", arg.kifu.account );
             _global.node.emit( "kifuApi.replayKifu", arg.kifu);
             _global.node.emit( "kifuApi.toEnd" );
@@ -148,7 +144,7 @@ function uuid() {
 
       var startGame = function( type ) {
         socket = getSocket();
-        socket.emit('room', { method : "startGame", type : type } ); 
+        socket.emit('room', { method : "startGame", type : type } );
         $("#gameMessageArea").empty();
         $("#roomWatchMenu").hide();
         $('#kifuSelectBox').empty();
@@ -340,6 +336,19 @@ function uuid() {
         $("#chatDiv").height(documentHeight - titleHeight, 240);
       }
 
+      var radioButtonClicked = function() {
+        var value = $("input[name='blind']:checked").val();
+        if ( value == "先手視点" ) {
+          _global.node.emit("graphicApi.blindKoma", { "flip" : false, "blind" : 0 });
+        } else if ( value == "後手視点" ) {
+          _global.node.emit("graphicApi.blindKoma", { "flip" : true, "blind" : 0 });
+        } else if ( value == "先手視点（ブラインド）" ) {
+          _global.node.emit("graphicApi.blindKoma", { "flip" : false, "blind" : 2 } );
+        } else if ( value == "後手視点（ブラインド）" ) {
+          _global.node.emit("graphicApi.blindKoma", { "flip" : true, "blind" : 1 });
+        }
+      }
+
 
     </script>
   </head>
@@ -386,7 +395,6 @@ function uuid() {
               <tr>
                 <th></th>
                 <th>開始時刻</th>
-                <!--<th>対局ID</th>-->
                 <th>先手</th>
                 <th>後手</th>
                 <th></th>
@@ -433,7 +441,28 @@ function uuid() {
           </div>
           <canvas id="komadai1" class="komadai"></canvas>
           <div id="kifuInfoDiv" >
-            <select size="16" id="kifuSelectBox"></select>
+            <select size="12" id="kifuSelectBox"></select>
+            <div class="radio">
+              <label onclick='radioButtonClicked()'>
+                <input id="radio_blind_watch" type="radio" name="blind" value="先手視点" checked="true">
+                先手視点
+              </label>
+              <br>
+              <label onclick='radioButtonClicked()'>
+                <input id="radio_blind_watch" type="radio" name="blind" value="後手視点">
+                後手視点
+              </label>
+              <br>
+              <label onclick='radioButtonClicked()'>
+                <input id="radio_blind_p1" type="radio" name="blind" value="先手視点（ブラインド）">
+                先手視点（ブラインド）
+              </label>
+              <br>
+              <label onclick='radioButtonClicked()'>
+                <input id="radio_blind_p2" type="radio" name="blind" value="後手視点（ブラインド）">
+                後手視点（ブラインド）
+              </label>
+            </div>
           </div>
           <div id="kifuReplayDiv">
             <input type='button' id='toStartButton' class='control-button' value='←←' onClick='_global.node.emit( "kifuApi.toStart" );' />

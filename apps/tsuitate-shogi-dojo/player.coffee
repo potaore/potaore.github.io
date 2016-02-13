@@ -97,6 +97,12 @@ komaTypes = ( ->
   setResource("to", "と"  , false, "hu", ""  , { str : "123468"       , moves : ["1","2","3","4","6","8"]}            , 1)
   _komaTypes)()
 
+getKomaName = (id) ->
+  if( komaTypes[id].resourceId )
+    komaTypes[ komaTypes[id].resourceId ].name
+  else
+    komaTypes[id].name
+
 getimage = (name) -> 
   image = new Image()
   image.src = "./images/koma/60x64/#{name}"
@@ -354,7 +360,42 @@ class Board
 
   getOu : (playerNumber) =>
     ou = @getKomaWithPosition( (koma) -> koma.playerNumber is playerNumber and koma.komaType is "ou" )
+    if not ou[0]
+      console.log (playerNumber)
+      console.log (@board)
     return if ou[0] then ou[0] else null
+
+class SyogiJudgement
+  constructor : () ->
+
+  canMove : (game, playerNumber, moveInfo) ->
+    n = 0
+    return false if game.state isnt "playing"
+    return false if game.turn % 2 isnt playerNumber % 2
+    fromKoma = game.board.getKoma(moveInfo.from.position)
+    toKomaType = komaTypes[moveInfo.to.komaType]
+    return false if not util.isInRange(moveInfo.from.position) or not util.isInRange(moveInfo.to.position)
+    return false if !fromKoma
+    return false if fromKoma.komaType isnt moveInfo.from.komaType
+    return false if toKomaType.id isnt fromKoma.komaType and toKomaType.resourceId isnt fromKoma.komaType
+    toKoma   = game.board.getKoma(moveInfo.to.position)
+    return false if toKoma and toKoma.playerNumber is playerNumber
+    pos = _(moveConvertor.getMovablePos(playerNumber, moveInfo.from.komaType, moveInfo.from.position, game.board)).find((pos)->util.posEq(pos, moveInfo.to.position))
+    return true if pos
+    return false
+
+  isOute : (game, playerNumber) =>
+    kikiMap = {}
+    enemyPlayerNumber = if playerNumber is 1 then 2 else 1
+    _( game.board.getPlayerKoma( enemyPlayerNumber ) ).each( (komaInfo) ->
+      postions = _(moveConvertor.getMovablePos(enemyPlayerNumber, komaInfo.koma.komaType, komaInfo.position, game.board))
+      postions = _(postions).map((pos)-> util.posToStr(pos))
+      _( postions ).each( (p) -> kikiMap[p] = true )
+    )
+    ou = game.board.getOu playerNumber
+    ouPos = util.posToStr ou.position
+    return if kikiMap[ouPos] then true else false
+judgement = new SyogiJudgement()
 
 class Game
   constructor : (@playerNumber, @player1, @player2) ->
@@ -431,11 +472,16 @@ class KifuPlayer
     currentPlayerNumber = 2-te.turn%2
     currentBoard.player1 = te.playerInfo.player1
     currentBoard.player2 = te.playerInfo.player2
+    currentBoard.events = []
 
     @currentTime = Date.now()
     currentBoard.turn = te.turn
     if te.info.type is "moveKoma"
+      if te.foul
+          currentBoard.events.push({ "type" : "foul" })
+
       if not te.foul
+
         if te.info.from.x isnt -1
           currentBoard.removeKoma te.info.from
           toKoma = currentBoard.getKoma( te.info.to )
@@ -445,14 +491,20 @@ class KifuPlayer
         if toKoma
           currentBoard.removeKoma( te.info.to )
           currentBoard.putKomaToKomadai(currentPlayerNumber, new Koma(currentPlayerNumber, toKoma.komaType ) )
+          currentBoard.events.push({ "type" : "get", "komaType" : toKoma.komaType })
+
+
         currentBoard.putKoma( new Koma( currentPlayerNumber, te.info.koma), te.info.to )
         currentBoard.emphasisPosition = te.info.to
         @currentPlayerNumber = 2-(te.turn+1)%2
+        if judgement.isOute({ "board" : currentBoard }, @currentPlayerNumber)
+          currentBoard.events.push({ "type" : "oute" })
       else 
         currentBoard.life[currentPlayerNumber] = currentBoard.life[currentPlayerNumber] - 1
         @currentPlayerNumber = 2-te.turn%2
     else if te.info.type is "endGame"
       currentBoard.endGame = true
+      currentBoard.events.push({ "type" : "endGame",  "winPlayerNumber" : te.info.winPlayerNumber })
 
     @boards.push( currentBoard )
 
@@ -494,6 +546,7 @@ game = null
 
 node.connect({name : "gameApi"}, (gameApiSocket) -> 
   gameApiSocket.on( "gameApi.startGame", ( arg ) ->
+    gameApiSocket.broadcast.emit( "graphicApi.init")
     gameApiSocket.broadcast.emit( "graphicApi.clearTable" )
     gameApiSocket.broadcast.emit( "soundApi.playStartSound" )
     game = new Game( arg.playerNumber, arg.playerInfo.player1, arg.playerInfo.player2 )
@@ -502,6 +555,12 @@ node.connect({name : "gameApi"}, (gameApiSocket) ->
   )
 
   gameApiSocket.on( "gameApi.endGame", ( info ) ->
+    #gameApiSocket.broadcast.emit( "graphicApi.init")
+    if game.playerNumber is 1
+      $('input[name=blind]').val(["先手視点"])
+    else
+      $('input[name=blind]').val(["後手視点"])
+    radioButtonClicked()
     gameApiSocket.broadcast.emit( "graphicApi.noticeOute", { oute : false }  )
     game.end()
     gameApiSocket.broadcast.emit( "graphicApi.redrawKoma", game )
@@ -696,46 +755,70 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
     return if game is null or game is undefined
     showPutableCell(koma.playerNumber, koma.komaType) )
 
-  params =
-    flip : false
-    oute : false
+  params = {}
+  memo = {}
+  init = ->
+    params =
+      flip  : false
+      oute  : false
+      blind : 0
+    memo = {}
+  graphicApiSocket.on( "graphicApi.init", (command) ->
+    init()
+    flipBord(false)
+  )
+  init()
 
-  graphicApiSocket.on( "graphicApi.updateGameInfo", (command) ->
+  updateGameInfo = (command) ->
+    memo.gameInfo = command
     domFinder.getGameInfoDiv(1, params.flip).empty()
     domFinder.getGameInfoDiv(2, params.flip).empty()
-
     domFinder.getGameInfoDiv(1, params.flip).append( "▲ 時間："+computeDuration(command.player1.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player1.life )
     domFinder.getGameInfoDiv(2, params.flip).append( "△ 時間："+computeDuration(command.player2.time) + " &nbsp;&nbsp;&nbsp;反則：" + command.player2.life )
-  )
+  resetGameInfo = -> updateGameInfo(memo.gameInfo) if memo.gameInfo
+  graphicApiSocket.on( "graphicApi.updateGameInfo", (command) -> updateGameInfo(command) )
 
-  graphicApiSocket.on( "graphicApi.setPlayerInfo", (command) ->
+  setPlayerInfo = (command) ->
+    memo.playerInfo = command
     domFinder.getPlayerImageDiv(1, params.flip).empty()
     domFinder.getPlayerImageDiv(2, params.flip).empty()
     domFinder.getPlayerInfoDiv(1, params.flip).empty()
     domFinder.getPlayerInfoDiv(2, params.flip).empty()
-
     domFinder.getPlayerImageDiv(1, params.flip).append( domFinder.getIconImage( command.player1.profile_url, command.player1.character ) )
     domFinder.getPlayerInfoDiv(1, params.flip).append( command.player1.name )
-
     domFinder.getPlayerImageDiv(2, params.flip).append( domFinder.getIconImage( command.player2.profile_url, command.player2.character ) )
     domFinder.getPlayerInfoDiv(2, params.flip).append( command.player2.name )
-  )
+  resetPlayerInfo = -> setPlayerInfo(memo.playerInfo) if memo.playerInfo
+  graphicApiSocket.on( "graphicApi.setPlayerInfo", (command) -> setPlayerInfo(command) )
 
   redrawKoma = (arg) ->
+    memo.game = arg
     initializeTableState()
     clearKoma()
     drawKoma(arg)
+  reredrawKoma = -> redrawKoma(memo.game) if memo.game
 
   drawKoma = (arg) ->
+    blind = if arg.board.endGame then 0 else params.blind 
+
     if graphicApi.invatedPosition
-      bordCanvas.checkCell( util.posFlipX( util.posFlip( graphicApi.invatedPosition, params.flip ) ) )
+      cancel = false
+      if blind 
+        myTurn = (arg.board.turn%2+1) is params.blind
+        if not myTurn and _( arg.board.events ).every( (ev) -> ev.type isnt "get" )
+            cancel = true
+      if not cancel
+        bordCanvas.checkCell( util.posFlipX( util.posFlip( graphicApi.invatedPosition, params.flip ) ) )
     komadai1 = if params.flip then komadai2Canvas else komadai1Canvas
     komadai2 = if params.flip then komadai1Canvas else komadai2Canvas
-    komadai1.drawKoma( arg.board.komaDai[0], params.flip )
-    komadai2.drawKoma( arg.board.komaDai[1], params.flip )
+    if blind isnt 1
+      komadai1.drawKoma( arg.board.komaDai[0], params.flip )
+    if blind isnt 2
+      komadai2.drawKoma( arg.board.komaDai[1], params.flip )
+
     util.allPos((x, y) ->
       koma = arg.board.getKoma({ x : x , y : y })
-      if koma
+      if koma and koma.playerNumber isnt blind
         bordCanvas.putKoma( domFinder.getKomaImage2(koma, params.flip), util.posFlipX( util.posFlip( { x : x , y : y }, params.flip ) ) )
     )
     bordCanvas.noticeOute() if params.oute
@@ -789,8 +872,57 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
   graphicApiSocket.on( "graphicApi.nari", (nari) -> 
     $("#modal-overlay").hide()
     $("#nariDiv").hide()
-    graphicApi.nari(nari) 
+    graphicApi.nari(nari)
   )
+
+  graphicApiSocket.on( "graphicApi.showEvents", (board) ->
+    texts = []
+    if params.blind isnt 0
+      myTurn = (board.turn%2+1) is params.blind
+      foul = false
+      end = false
+      _( board.events ).each( (ev) ->
+        if ev.type is "get"
+          if myTurn
+            texts.push(getKomaName(ev.komaType) + "を取りました")
+          else
+            texts.push(komaTypes[ev.komaType].name + "を取られました")
+        else if ev.type is "oute"
+          if myTurn
+            texts.push("王手をかけました")
+          else
+            texts.push("王手をかけられました")
+        else if ev.type is "foul"
+          foul = true
+          if myTurn
+            texts.push("反則です")
+          else
+            texts.push("相手が反則手を指しました")
+        else if ev.type is "endGame"
+          end = true
+          if ev.winPlayerNumber is 3 - params.blind
+            texts.push("あなたの勝ちです")
+          else
+            texts.push("あなたの負けです")
+      )
+      if not end
+        if ( myTurn and not foul ) or ( not myTurn and foul )
+          texts.push("相手の手番です。")
+        else
+          texts.push("あなたの手番です。")
+
+    showMessage({ "texts" : texts })
+  )
+
+  showMessage = (message) ->
+    $("#gameMessageArea").empty();
+    _(message.texts).each( (text) ->
+      $("#gameMessageArea").append($('<li>').text(text))
+    )
+    $("#gameMessageArea").hide()
+    $("#gameMessageArea").show(200)
+
+  graphicApiSocket.on( "graphicApi.showMessage", showMessage )
 
   showPutableCell = (playerNumber, komaType) ->
     graphicApiSocket.broadcast.emit( "gameApi.getGame", null, (game) -> 
@@ -828,14 +960,23 @@ node.connect({name : "graphicApi"}, (graphicApiSocket) ->
 
   graphicApiSocket.on( "graphicApi.initializeTableState", initializeTableState )
 
-  graphicApiSocket.on( "graphicApi.flipBord", (flip) -> 
+  graphicApiSocket.on( "graphicApi.blindKoma", (arg) -> 
+    params.blind = arg.blind
+    flipBord(arg.flip)
+    resetPlayerInfo()
+    resetGameInfo()
+  )
+
+
+  flipBord = (flip) ->
     if flip
       $("#boardImg").css( { "transform" : "rotate3d(0, 0, 1, 180deg)"} )
     else
       $("#boardImg").css( { "transform" : "rotate3d(0, 0, 1, 0deg)"} )
     params.flip = flip
-    redrawKoma(game)
-  )
+    reredrawKoma()
+
+  graphicApiSocket.on( "graphicApi.flipBord", (flip) -> flipBord(flip) )
 
   graphicApiSocket.on( "graphicApi.hideModal", ->
     $("#modal-window").hide()
@@ -908,6 +1049,7 @@ node.connect({name : "kifuApi"}, (kifuApiSocket) ->
       $('#backButton').prop('disabled', index is 0)
       $('#nextButton').prop('disabled', kifuLength is index )
       $('#toEndButton').prop('disabled', kifuLength is index )
+      node.emit("graphicApi.showEvents", board)
 
     kifuApi.kifuPlayer = new KifuPlayer( arg.kifu, 1, refresh, arg.playerInfo.player1, arg.playerInfo.player2 )
     kifuApi.kifuPlayer.activateUpdateTimer()

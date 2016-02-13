@@ -73,6 +73,10 @@ a:hover {
 a:active { color: white } 
 
 
+.radio {
+  padding: 5px;
+  background-color: #FFFFFF;
+}
 
 #lobby {
   width : 500px; 
@@ -213,7 +217,8 @@ a:active { color: white }
   position:absolute;
 }
 #kifuSelectBox {
-  width : 220px; 
+  width : 220px;
+  margin : 0px 0px 10px 0px;
 }
 #kifuReplayDiv {
   display:none;
