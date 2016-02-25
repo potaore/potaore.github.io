@@ -792,6 +792,25 @@
 
   })();
 
+  Board.create = (function(_this) {
+    return function(rowBord, playerInfo) {
+      var board, x, y, _i, _j;
+      board = new Board(playerInfo.player1, playerInfo.player2);
+      for (y = _i = 0; _i < 9; y = ++_i) {
+        for (x = _j = 0; _j < 9; x = ++_j) {
+          if (rowBord.board[x][y]) {
+            board.board[x][y] = new Koma(rowBord.board[x][y].playerNumber, rowBord.board[x][y].komaType);
+          } else {
+            board.board[x][y] = '';
+          }
+        }
+      }
+      board.komaDai[0] = board.komaDai[0].concat(rowBord.komaDai[0]);
+      board.komaDai[1] = board.komaDai[1].concat(rowBord.komaDai[1]);
+      return board;
+    };
+  })(this);
+
   SyogiJudgement = (function() {
     function SyogiJudgement() {
       this.isOute = __bind(this.isOute, this);
@@ -867,6 +886,7 @@
       this.playerNumber = playerNumber;
       this.player1 = player1;
       this.player2 = player2;
+      this.synchronizeGameInfo = __bind(this.synchronizeGameInfo, this);
       this.getCurrentPlayer = __bind(this.getCurrentPlayer, this);
       this.end = __bind(this.end, this);
       this.start = __bind(this.start, this);
@@ -933,6 +953,11 @@
       } else {
         return this.board.player2;
       }
+    };
+
+    Game.prototype.synchronizeGameInfo = function(bord, turn, playerInfo) {
+      this.turn = turn;
+      return this.board = Board.create(bord, playerInfo);
     };
 
     return Game;
@@ -1150,13 +1175,20 @@
         args: moveInfo
       });
     });
+    gameApiSocket.on("gameApi.synchronize", function(command) {
+      if (game) {
+        game.synchronizeGameInfo(command.bord, command.turn, command.playerInfo);
+        return gameApiSocket.broadcast.emit("graphicApi.redrawKoma", game);
+      }
+    });
     gameApiSocket.on("gameApi.doCommand", function(commands) {
-      var bkInvated, getKomaFlag, isFoul, outeFlag;
+      var bkInvated, contradiction, getKomaFlag, isFoul, outeFlag;
       isFoul = false;
       bkInvated = graphicApi.invatedPosition;
       graphicApi.invatedPosition = null;
       getKomaFlag = false;
       outeFlag = false;
+      contradiction = false;
       _(commands).each(function(command) {
         if (command.method === "removeKomaFromKomadai") {
           return game.board.removeKomaFromKomadai(command.playerNumber, command.koma.komaType);
@@ -1181,23 +1213,31 @@
           return gameApiSocket.broadcast.emit("graphicApi.noticeOute", command);
         } else if (command.method === "noticeGetKoma") {
           return getKomaFlag = command.getKoma;
+        } else if (command.method === "contradiction") {
+          contradiction = true;
+          socket.emit('game', {
+            method: "synchronize"
+          });
+          return console.log("contradiction");
         }
       });
-      if (isFoul) {
-        gameApiSocket.broadcast.emit("soundApi.playFoulSound");
-        gameApiSocket.broadcast.emit("graphicApi.initializeTableState");
-        graphicApi.invatedPosition = bkInvated;
-      } else {
-        if (outeFlag) {
-          gameApiSocket.broadcast.emit("soundApi.playOuteSound");
-        } else if (getKomaFlag) {
-          gameApiSocket.broadcast.emit("soundApi.playGetSound");
+      if (!contradiction) {
+        if (isFoul) {
+          gameApiSocket.broadcast.emit("soundApi.playFoulSound");
+          gameApiSocket.broadcast.emit("graphicApi.initializeTableState");
+          graphicApi.invatedPosition = bkInvated;
         } else {
-          gameApiSocket.broadcast.emit("soundApi.playKomaSound");
+          if (outeFlag) {
+            gameApiSocket.broadcast.emit("soundApi.playOuteSound");
+          } else if (getKomaFlag) {
+            gameApiSocket.broadcast.emit("soundApi.playGetSound");
+          } else {
+            gameApiSocket.broadcast.emit("soundApi.playKomaSound");
+          }
+          game.nextTurn();
         }
-        game.nextTurn();
+        return gameApiSocket.broadcast.emit("graphicApi.redrawKoma", game);
       }
-      return gameApiSocket.broadcast.emit("graphicApi.redrawKoma", game);
     });
     return gameApiSocket.on("gameApi.getGame", function() {
       return game;

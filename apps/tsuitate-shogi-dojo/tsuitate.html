@@ -106,6 +106,9 @@ function uuid() {
           socket.on('command', function(command){
             _global.node.emit( "gameApi.doCommand", command );
           });
+          socket.on('synchronize', function(command){
+            _global.node.emit( "gameApi.synchronize", command );
+          });
           socket.on('endGame', function( arg ) {
             _global.node.emit( "pagingApi.kifu" );
             _global.node.emit( "gameApi.endGame", arg );

@@ -365,6 +365,20 @@ class Board
       console.log (@board)
     return if ou[0] then ou[0] else null
 
+Board.create = (rowBord, playerInfo) =>
+    board = new Board(playerInfo.player1,playerInfo.player2)
+    for y in [0...9]
+      for x in [0...9]
+        if rowBord.board[x][y]
+          board.board[x][y] = new Koma(rowBord.board[x][y].playerNumber, rowBord.board[x][y].komaType)
+        else
+          board.board[x][y] = ''
+    board.komaDai[0] = board.komaDai[0].concat(rowBord.komaDai[0])
+    board.komaDai[1] = board.komaDai[1].concat(rowBord.komaDai[1])
+    return board
+
+
+
 class SyogiJudgement
   constructor : () ->
 
@@ -439,6 +453,11 @@ class Game
     @state = "end"
 
   getCurrentPlayer : => if @turn%2 is 1 then @board.player1 else @board.player2
+
+  synchronizeGameInfo : ( bord, turn, playerInfo ) =>
+    @turn = turn
+    @board = Board.create(bord, playerInfo)
+
 
 class KifuPlayer
   constructor : (@kifu, @playerNumber, @refresh, @player1, @player2) ->
@@ -580,12 +599,20 @@ node.connect({name : "gameApi"}, (gameApiSocket) ->
     )
   )
 
+  gameApiSocket.on( "gameApi.synchronize", (command) -> 
+    if game 
+      game.synchronizeGameInfo(command.bord, command.turn, command.playerInfo)
+      gameApiSocket.broadcast.emit( "graphicApi.redrawKoma", game)
+  )
+
+
   gameApiSocket.on( "gameApi.doCommand", (commands) -> 
     isFoul = false
     bkInvated = graphicApi.invatedPosition
     graphicApi.invatedPosition = null
     getKomaFlag = false
     outeFlag = false
+    contradiction = false
     _(commands).each((command) ->
       if command.method is "removeKomaFromKomadai"
         game.board.removeKomaFromKomadai(command.playerNumber, command.koma.komaType)
@@ -610,21 +637,26 @@ node.connect({name : "gameApi"}, (gameApiSocket) ->
         gameApiSocket.broadcast.emit( "graphicApi.noticeOute", command )
       else if command.method is "noticeGetKoma"
         getKomaFlag = command.getKoma
+      else if command.method is "contradiction"
+        contradiction = true
+        socket.emit('game', method : "synchronize")
+        console.log "contradiction"
     )
-    if isFoul
-      gameApiSocket.broadcast.emit( "soundApi.playFoulSound" )
-      gameApiSocket.broadcast.emit( "graphicApi.initializeTableState" )
-      graphicApi.invatedPosition = bkInvated
-    else
-      if outeFlag
-        gameApiSocket.broadcast.emit( "soundApi.playOuteSound" )
-      else if getKomaFlag
-        gameApiSocket.broadcast.emit( "soundApi.playGetSound" )
+    if not contradiction 
+      if isFoul
+        gameApiSocket.broadcast.emit( "soundApi.playFoulSound" )
+        gameApiSocket.broadcast.emit( "graphicApi.initializeTableState" )
+        graphicApi.invatedPosition = bkInvated
       else
-        gameApiSocket.broadcast.emit( "soundApi.playKomaSound" )
+        if outeFlag
+          gameApiSocket.broadcast.emit( "soundApi.playOuteSound" )
+        else if getKomaFlag
+          gameApiSocket.broadcast.emit( "soundApi.playGetSound" )
+        else
+          gameApiSocket.broadcast.emit( "soundApi.playKomaSound" )
 
-      game.nextTurn()
-    gameApiSocket.broadcast.emit( "graphicApi.redrawKoma", game )
+        game.nextTurn()
+      gameApiSocket.broadcast.emit( "graphicApi.redrawKoma", game )
   )
 
   gameApiSocket.on( "gameApi.getGame", -> game )
