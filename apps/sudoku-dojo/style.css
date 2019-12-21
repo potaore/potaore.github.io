@@ -45,6 +45,12 @@ select {
 button {
     height: 50px;
     font-size: x-large;
+    cursor: pointer;
+    border-style: none;
+}
+
+button:hover {
+    background-color: lightblue;
 }
 
 button.button-main {
@@ -52,20 +58,25 @@ button.button-main {
 }
 
 button.button-sub {
-    width: 60px;
+    width: 63px;
 }
 
 #q-number {
-    height: 45px;
+    height: 48px;
     width: 100px;
     font-size: x-large;
     text-align: right;
+    border-style: none;
+}
+
+input{
+    border-style: none;
 }
 
 input.cell-input {
-    height: 74px;
-    width: 74px;
-    font-size: xx-large;
+    height: 78px;
+    width: 78px;
+    font-size: 50px;
     text-align: center;
 }
 
@@ -74,9 +85,9 @@ input.cell-input:focus {
 }
 
 input.cell {
-    height: 74px;
-    width: 74px;
-    font-size: xx-large;
+    height: 78px;
+    width: 78px;
+    font-size: 50px;
     text-align: center;
     background-color: #f0fff0;
 }
@@ -105,6 +116,10 @@ td.block {
 
 .close {
     background-color: midnightblue;
+}
+
+.close:hover {
+    background-color: slateblue;
 }
 
 span.as-tab {
