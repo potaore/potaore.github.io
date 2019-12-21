@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Language" content="ja" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Script-Type" content="text/javascript" />
+
+    <title>Sudoku-Dojo</title>
+    <script type="text/javascript" src="solve_sudoku.js"></script>
+    <script type="text/javascript">
+        function init() {
+            create_sudoku_table("q", true);
+            create_sudoku_table("ar", false);
+            create_sudoku_table("aa", false);
+        }
+
+        function create_sudoku_table(initial_id, input_mode) {
+            var rows_memo = {};
+            for (var bi = 1; bi <= 9; bi++) {
+                var table = document.createElement("table");
+                document.getElementById(initial_id + bi).appendChild(table);
+                rows_memo[bi] = {};
+                for (var i = 1; i <= 9; i++) {
+                    for (var j = 1; j <= 9; j++) {
+                        if ((Math.floor((j - 1) / 3) + Math.floor((i - 1) / 3) * 3 + 1) != bi) continue;
+                        if (!rows_memo[bi][i]) rows_memo[bi][i] = table.insertRow(-1);
+                        var input = document.createElement("input");
+                        input.type = "text";
+                        input.id = initial_id + i + "-" + j;
+                        if (input_mode) {
+                            input.className = "cell-input";
+                            input.addEventListener("input", on_input_cell);
+                        } else {
+                            input.className = "cell";
+                            input.disabled = true;
+                        }
+                        var cell = rows_memo[bi][i].insertCell(-1);
+                        cell.appendChild(input);
+                    }
+                }
+            }
+        }
+
+        function on_change_mode(select) {
+            set_display_calss("input-question", "none");
+            set_display_calss("analysis-result", "none");
+            set_display_calss("another-answer", "none");
+            set_display_calss(select.value, "block");
+        }
+
+        function on_back() {
+            var elem = document.getElementById("q-number");
+            var q_number = parseInt(elem.value);
+            if (q_number == 0) {} else {
+                if (q_number) {
+                    q_number--;
+                } else {
+                    q_number = 0;
+                }
+                elem.value = q_number;
+                show_question(q_number);
+            }
+        }
+
+        function on_next() {
+            var elem = document.getElementById("q-number");
+            var q_number = parseInt(elem.value);
+            if (q_number >= 4000) {} else {
+                if (q_number || q_number == 0) {
+                    q_number++;
+                } else {
+                    q_number = 0;
+                }
+                elem.value = q_number;
+                show_question(q_number);
+            }
+        }
+
+        function on_q_number() {
+            var elem = document.getElementById("q-number");
+            var q_number = parseInt(elem.value);
+            if (!q_number || q_number <= 0 || q_number > 4000) {
+                q_number = 0;
+            }
+            elem.value = q_number;
+            if (q_number == 0) {
+                clear_sudoku_tables();
+            } else if (q_number) {
+                show_question(q_number);
+            }
+        }
+
+        function show_question(q_number) {
+            var file_name =
+                1 <= q_number && q_number <= 1000 ? "questions_00001_01000.json" :
+                1001 <= q_number && q_number <= 2000 ? "questions_01001_02000.json" :
+                2001 <= q_number && q_number <= 3000 ? "questions_02001_03000.json" :
+                3001 <= q_number && q_number <= 4000 ? "questions_03001_04000.json" : "";
+            if (!file_name) return;
+            var questions_10000 = get_questions_1000(file_name);
+            var question = questions_10000[(q_number - 1) % 1000];
+            clear_sudoku_tables();
+            fill_sudoku_table("q", question);
+        }
+
+        var questions_1000_cache = {};
+
+        function get_questions_1000(file_name) {
+            if (questions_1000_cache[file_name]) {
+                return questions_1000_cache[file_name];
+            } else {
+                var xmlHttp = new XMLHttpRequest();
+                xmlHttp.open("GET", file_name, false);
+                xmlHttp.send(null);
+                return questions_1000_cache[file_name] = JSON.parse(xmlHttp.responseText);
+            }
+        }
+
+        function clear_sudoku_tables() {
+            clear_sudoku_table("q");
+            clear_sudoku_table("ar");
+            clear_sudoku_table("aa");
+        }
+
+        function clear_sudoku_table(initial_id) {
+            for (var i = 1; i <= 9; i++)
+                for (var j = 1; j <= 9; j++)
+                    document.getElementById(initial_id + i + "-" + j).value = "";
+        }
+
+        function fill_sudoku_table(initial_id, data) {
+            for (var i = 1; i <= 9; i++)
+                for (var j = 1; j <= 9; j++)
+                    if (data[i - 1][j - 1])
+                        document.getElementById(initial_id + i + "-" + j).value = data[i - 1][j - 1];
+        }
+
+        function on_clear() {
+            clear_sudoku_tables();
+            clear_messages();
+            document.getElementById("q-number").value = 0;
+        }
+
+        function clear_messages() {
+            document.getElementById("analysis-result-text").innerText = "";
+            document.getElementById("another-answer-text").innerText = "";
+        }
+
+        function on_input_cell() {
+            var elem = this;
+            if (elem.value == "0" || elem.value == " ") {
+                elem.value = " ";
+            } else if (elem.value.match(/[^\d ]/)) {
+                elem.value = "";
+            }
+
+            if (elem.value.length >= 2) {
+                elem.value = elem.value[1];
+            }
+
+            if (elem.value.length == 1) {
+                var cells = document.getElementsByClassName("cell-input");
+                for (var i = 0; i + 1 < cells.length; i++) {
+                    if (cells[i] == elem) {
+                        cells[i + 1].focus();
+                        break;
+                    }
+                }
+                document.getElementById("q-number").value = 0;
+            }
+            clear_messages();
+            clear_sudoku_table("ar");
+            clear_sudoku_table("aa");
+        }
+
+        function on_analize() {
+            clear_sudoku_table("ar");
+            clear_sudoku_table("aa");
+            var result = solveSudoku(read_question(), 1, true);
+            if (result.result) {
+                fill_sudoku_table("ar", memoMapToAnswer(result.memoMap));
+                if (result.dup) {
+                    fill_sudoku_table("aa", memoMapToAnswer(result.secondResult.memoMap));
+                    document.getElementById("analysis-result-text").innerText = "Q has multiple answers.";
+                    document.getElementById("another-answer-text").innerText = "This is second answer.";
+                    document.getElementById("analysis-result-text").className = "analysis-result transparent invalid";
+                    document.getElementById("another-answer-text").className = "another-answer transparent invalid";
+                } else {
+                    document.getElementById("analysis-result-text").innerText = "Q has unique answer.";
+                    document.getElementById("another-answer-text").innerText = "Q has no another answers.";
+                    document.getElementById("analysis-result-text").className = "analysis-result transparent valid";
+                    document.getElementById("another-answer-text").className = "another-answer transparent valid";
+                }
+            } else {
+                document.getElementById("analysis-result-text").innerText = "Q has no answer.";
+                document.getElementById("analysis-result-text").className = "analysis-result transparent invalid";
+                document.getElementById("another-answer-text").className = "another-answer transparent invalid";
+            }
+
+            var elem = document.getElementById("view-mode-select");
+            elem.value = "analysis-result";
+            on_change_mode(elem);
+        }
+
+        function read_question() {
+            var question = [];
+            for (var i = 1; i <= 9; i++) {
+                var line = [];
+                for (var j = 1; j <= 9; j++) {
+                    var value = document.getElementById("q" + i + "-" + j).value;
+                    if (value == " " || !value) {
+                        line.push("");
+                    } else {
+                        line.push(parseInt(value));
+                    }
+                }
+                question.push(line);
+            }
+            return question;
+        }
+
+        function open_pane(switch_id, pane_id) {
+            set_display_calss("switch-c", "none");
+            set_display_calss("switch-o", "block");
+            set_display_calss("details", "none");
+            document.getElementById(pane_id).style.display = "block";
+            document.getElementById(switch_id + "o").style.display = "none";
+            document.getElementById(switch_id + "c").style.display = "block";
+        }
+
+        function close_pane() {
+            set_display_calss("switch-c", "none");
+            set_display_calss("switch-o", "block");
+            set_display_calss("details", "none");
+        }
+
+        function set_display_calss(class_name, display) {
+            var elems = document.getElementsByClassName(class_name);
+            for (var i = 0; i < elems.length; i++) {
+                elems[i].style.display = display;
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="../../style.css" type="text/css">
+    <link rel="stylesheet" href="./style.css" type="text/css">
+</head>
+
+<body onload="init()">
+    <div id="conten-wrapper">
+        <h1>Sudoku-Dojo v1.0.0 公開前確認</h1>
+
+        <div id="menu-div">
+            <table id="menu" class="transparent">
+                <tr class="transparent">
+                    <td class="transparent"><span>Mode:</span></td>
+                    <td class="transparent">
+                        <select id="view-mode-select" onchange="on_change_mode(this)">
+                      <option value="input-question">Input Question</option>
+                      <option value="analysis-result">Analysis Result</option>
+                      <option value="another-answer">Another Answer</option>
+                    </select>
+                    </td>
+                    <td class="transparent"><button id="button-back" class="input-question button-sub" onclick="on_back()">←</button></td>
+                    <td class="transparent"><input type="number" id="q-number" class="input-question" maxlength="4" max="3000" min="0" value="0" onblur="on_q_number()" /></td>
+                    <td class="transparent"><button id="button-next" class="input-question button-sub" onclick="on_next()">→</button></td>
+                    <td class="transparent"><button id="button-analize" class="input-question button-main" onclick="on_analize()">Analize</button></td>
+                    <td class="transparent"><button id="button-clear" class="input-question button-main" onclick="on_clear()">Clear</button></td>
+                    <td class="transparent">
+                        <span id="analysis-result-text" class="analysis-result transparent" style="display: none;"></span>
+                        <span id="another-answer-text" class="another-answer transparent" style="display: none;"></span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="input-question">
+            <table>
+                <tr>
+                    <td id="q1" class="block"></td>
+                    <td id="q2" class="block"></td>
+                    <td id="q3" class="block"></td>
+                </tr>
+                <tr>
+                    <td id="q4" class="block"></td>
+                    <td id="q5" class="block"></td>
+                    <td id="q6" class="block"></td>
+                </tr>
+                <tr>
+                    <td id="q7" class="block"></td>
+                    <td id="q8" class="block"></td>
+                    <td id="q9" class="block"></td>
+                </tr>
+            </table>
+        </div>
+        <div class="analysis-result" style="display: none;">
+            <table>
+                <tr>
+                    <td id="ar1" class="block"></td>
+                    <td id="ar2" class="block"></td>
+                    <td id="ar3" class="block"></td>
+                </tr>
+                <tr>
+                    <td id="ar4" class="block"></td>
+                    <td id="ar5" class="block"></td>
+                    <td id="ar6" class="block"></td>
+                </tr>
+                <tr>
+                    <td id="ar7" class="block"></td>
+                    <td id="ar8" class="block"></td>
+                    <td id="ar9" class="block"></td>
+                </tr>
+            </table>
+        </div>
+        <div class="another-answer" style="display: none;">
+            <table>
+                <tr>
+                    <td id="aa1" class="block"></td>
+                    <td id="aa2" class="block"></td>
+                    <td id="aa3" class="block"></td>
+                </tr>
+                <tr>
+                    <td id="aa4" class="block"></td>
+                    <td id="aa5" class="block"></td>
+                    <td id="aa6" class="block"></td>
+                </tr>
+                <tr>
+                    <td id="aa7" class="block"></td>
+                    <td id="aa8" class="block"></td>
+                    <td id="aa9" class="block"></td>
+                </tr>
+            </table>
+        </div>
+
+        <div id="explanations">
+            <table class="transparent">
+                <tr class="transparent">
+                    <td class="transparent close"><span id="switch1o" class="switch-o as-tab" onclick='open_pane("switch1", "overview")'>＋概要</span></td>
+                    <td class="transparent open"><span id="switch1c" class="switch-c as-tab" style="display:none;" onclick='close_pane()'>－概要</span></td>
+                    <td class="transparent close"><span id="switch2o" class="switch-o as-tab close" onclick='open_pane("switch2", "about-this-program")'>＋雑記</span></td>
+                    <td class="transparent open"><span id="switch2c" class="switch-c as-tab" style="display:none;" onclick='close_pane()'>－雑記</span></td>
+                    <td class="transparent close"><span id="switch3o" class="switch-o as-tab close" onclick='open_pane("switch3", "about-questions")'>＋問題</span></td>
+                    <td class="transparent open"><span id="switch3c" class="switch-c as-tab" style="display:none;" onclick='close_pane()'>－問題</span></td>
+                </tr>
+            </table>
+
+            <div id="overview" class="details" style="display:none;">
+                <span>数独(ナンプレ)を解析するプログラムです。</span>
+                <ul>
+                    <li>単一解であることを保証して解きます</li>
+                    <li>高難度のオリジナル問題を大量に公開しています</li>
+                    <li>問題番号が進むにつれ、より難しい問題が増えてきます</li>
+                </ul>
+            </div>
+            <div id="about-this-program" class="details" style="display:none;">
+                <h3>あらゆる問題を素早く解析するプログラム</h3>
+                <p>
+                    「ナンプレを解くプログラム」の作成に挑戦し、公開されている方は沢山います。 しかし、それらのプログラムのほとんどは一つの解答を発見できた段階で「解いた」という扱いをしています。私は、単独解であること論理的、もしくは総当たりで保証出来なければ「解いた」とは言えないと考えます。当然、重解が存在するのであれば、それを指摘出来なければいけません。また、ほとんど空白のような不完全な問題や、世界最難関クラスの問題を瞬時に解くようなプログラムは滅多にありません。 今回私が目指したのは、これらを全て満たすようなプログラムの作成と、高難度の問題生成です。
+                </p>
+                <h3>世界にある難問について</h3>
+                <p>
+                    まず、日本国内のサイトには私のプログラムにとって難問と呼べるものは見つけられませんでした。 ほどほどのスペックの私のPCで、解くまでに最大でも50msぐらいの問題しか見当たりませんでした（人間向けの難問の多くは1ms、ほとんどは10msを切ります）。 それに対し、理系の大学教授が「世界一難しい」と銘打って公開している問題等はやはり一段難しいです。100ms以上かかるものありました。
+                </p>
+                <p>
+                    しかし、世界は広いもので、海外のフォーラムを探すと何万もの問題が公開されていたり、その中から特に難しい問題をピックアップしている方もいました。 そのレベルになると、100ms以上かかるのは当然のこと、発見当時は最悪4000ms近くかかるものもありました。 現在はそれらの問題が2000ms以下で解ける状態です。 それなりのスピードになったと実感していますが、スマホ等でこういった難問を瞬時に解析できるレベルまでには至りませんでした。
+                </p>
+            </div>
+            <div id="about-questions" class="details" style="display:none;">
+                <h3>問題の一括ダウンロード</h3>
+                <p>
+                    下記リンクにて問題を一括で公開しています。さらに難易度の高い問題も公開予定です。
+                </p>
+                <p>
+                    1000問区切り：json配列形式<br>
+                    <a href="./questions_00001_01000.json">00001-01000</a>
+                    <a href="./questions_01001_02000.json">01001-02000</a>
+                    <a href="./questions_02001_03000.json">02001-03000</a>
+                    <a href="./questions_03001_04000.json">03001-04000</a>
+                </p>
+                <p>
+                    全問題：テキスト形式0～9の81文字を一問として、問題を改行(\n)で区切ったもの）<br>
+                    <a>00001-04000.txt</a>
+                </p>
+                <h3>問題の著作権等</h3>
+                <p>
+                    ここで公開している問題は基本的に自由に掲載、利用していただいてかまいません。ただし、著作権は放棄していません。商用での利用はご相談ください。
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

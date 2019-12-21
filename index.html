@@ -1,51 +1,57 @@
 <html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>GameTime</title>
-<link rel="stylesheet" href="style.css" type="text/css">
-<script type="text/javascript">
 
-	function loadText(url){
-	  var xmlHttp;
-	  xmlHttp = new XMLHttpRequest();
-	  xmlHttp.open("GET", url, false);
-	  xmlHttp.send(null);
-	  return xmlHttp.responseText;
-	}
-	
-	function getContent(url){
-		var content = loadText(url);
-		var div_element = document.createElement("div");
-		div_element.innerHTML = content;
-		var parent_object = document.getElementById("contentarea");
-		removeChild(parent_object);
-		parent_object.appendChild(div_element);
-	}
-	
-	function removeChild(element){
-		while (element.firstChild)
-			element.removeChild(element.firstChild);
-	}
-	getContent('news.html');
-</script>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>GameTime</title>
+	<link rel="stylesheet" href="style.css" type="text/css">
+	<script type="text/javascript">
+
+		function loadText(url) {
+			var xmlHttp;
+			xmlHttp = new XMLHttpRequest();
+			xmlHttp.open("GET", url, false);
+			xmlHttp.send(null);
+			return xmlHttp.responseText;
+		}
+
+		function getContent(url) {
+			var content = loadText(url);
+			var div_element = document.createElement("div");
+			div_element.innerHTML = content;
+			var parent_object = document.getElementById("contentarea");
+			removeChild(parent_object);
+			parent_object.appendChild(div_element);
+		}
+
+		function removeChild(element) {
+			while (element.firstChild)
+				element.removeChild(element.firstChild);
+		}
+
+		function init() {
+			getContent('news.html');
+		}
+
+	</script>
 </head>
 
-<body bgcolor="#ffeeee" style="vertical-align:middle;">
-<a href="http://gametime.web.fc2.com/" target="_top"><font size=17>GAME TIME</font></a>　～自作ゲームや生放送～<br/>
+<body bgcolor="#ffeeee" style="vertical-align:middle;" onload="init()">
+	<a href="http://gametime.web.fc2.com/" target="_top">
+		<font size=17>GAME TIME</font>
+	</a>　～自作ゲームや生放送～<br />
 
-<div>
-	<span onclick="getContent('news.html')" class="menu">News</span>
-	<span onclick="getContent('si.html')" class="menu">私</span>
-	<span onclick="getContent('zakki/zakki.html')" class="menu">雑記</span>
-	<span onclick="getContent('mygame/top.html')" class="menu">ゲーム</span>
-	<span onclick="getContent('apps/index.html')" class="menu">WebApp</span>
-	<span onclick="getContent('nicolive.html')" class="menu">ニコ生</span>
-</div>
-<br />
-<div id="contentarea">
-</div>
+	<div>
+		<span onclick="getContent('news.html')" class="menu">News</span>
+		<span onclick="getContent('si.html')" class="menu">私</span>
+		<span onclick="getContent('zakki/zakki.html')" class="menu">雑記</span>
+		<span onclick="getContent('mygame/top.html')" class="menu">ゲーム</span>
+		<span onclick="getContent('apps/index.html')" class="menu">WebApp</span>
+		<span onclick="getContent('nicolive.html')" class="menu">ニコ生</span>
+	</div>
+	<br />
+	<div id="contentarea">
+	</div>
 
 </body>
 
 </html>
-

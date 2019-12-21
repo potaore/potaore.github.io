@@ -1,0 +1,121 @@
+h1 {
+    text-align: center;
+    margin: 5px 0px 5px 0px;
+    background-color: slateblue;
+}
+
+div#menu-div {
+    height: 55px;
+}
+
+table#menu {
+    margin: auto 0 0 0;
+}
+
+div#explanations {
+    text-align: left;
+}
+
+div#conten-wrapper {
+    width: 755px;
+    margin: auto;
+}
+
+span {
+    font-size: xx-large;
+}
+
+li {
+    font-size: x-large;
+}
+
+p {
+    font-size: large;
+}
+
+span {
+    font-size: xx-large;
+}
+
+select {
+    height: 50px;
+    font-size: x-large;
+}
+
+button {
+    height: 50px;
+    font-size: x-large;
+}
+
+button.button-main {
+    width: 110px;
+}
+
+button.button-sub {
+    width: 60px;
+}
+
+#q-number {
+    height: 45px;
+    width: 100px;
+    font-size: x-large;
+    text-align: right;
+}
+
+input.cell-input {
+    height: 74px;
+    width: 74px;
+    font-size: xx-large;
+    text-align: center;
+}
+
+input.cell-input:focus {
+    background-color: lightskyblue;
+}
+
+input.cell {
+    height: 74px;
+    width: 74px;
+    font-size: xx-large;
+    text-align: center;
+    background-color: #f0fff0;
+}
+
+table {
+    margin: auto;
+}
+
+tr {
+    border-style: none;
+}
+
+td.block {
+    border-style: none;
+}
+
+.transparent {
+    border-style: none;
+    margin: 0 0 0 0;
+    padding: 0;
+}
+
+.open {
+    background-color: slateblue;
+}
+
+.close {
+    background-color: midnightblue;
+}
+
+span.as-tab {
+    margin: 0px 10px 0px 4px;
+    cursor: pointer;
+}
+
+.invalid {
+    background-color: maroon;
+}
+
+.valid {
+    background-color: seagreen;
+}
