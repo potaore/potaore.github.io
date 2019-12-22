@@ -39,7 +39,7 @@ span {
 
 select {
     height: 60px;
-    width: 195px;
+    width: 240px;
     font-size: x-large;
     box-sizing: border-box;
 }
@@ -68,11 +68,11 @@ input.button:hover {
 }
 
 input.button-main {
-    width: 115px;
+    width: 125px;
 }
 
 input.button-sub {
-    width: 70px;
+    width: 83px;
 }
 
 #q-number {
@@ -88,8 +88,8 @@ input {
 }
 
 input.cell-input {
-    height: 80px;
-    width: 80px;
+    height: 81px;
+    width: 81px;
     font-size: 50px;
 }
 
@@ -98,8 +98,8 @@ input.cell-input:focus {
 }
 
 input.cell {
-    height: 80px;
-    width: 80px;
+    height: 81px;
+    width: 81px;
     font-size: 50px;
     text-align: center;
     background-color: #f0fff0;
