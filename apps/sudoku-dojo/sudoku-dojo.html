@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html
-  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
 
 <head>
@@ -86,8 +85,10 @@
         function on_q_number() {
             var elem = document.getElementById("q-number");
             var q_number = parseInt(elem.value);
-            if (!q_number || q_number <= 0 || q_number > 4000) {
+            if (!q_number || q_number <= 0) {
                 q_number = 0;
+            } else if (q_number > 4000) {
+                q_number = 4000;
             }
             elem.value = q_number;
             if (q_number == 0) {
@@ -109,6 +110,7 @@
             var questions_10000 = get_questions_1000(file_name);
             var question = questions_10000[(q_number - 1) % 1000];
             clear_sudoku_tables();
+            clear_messages();
             fill_sudoku_table("q", question);
         }
 
@@ -204,11 +206,11 @@
         function on_analize() {
             clear_sudoku_table("ar");
             clear_sudoku_table("aa");
-            var result = solveSudoku(read_question(), 1, true);
+            var result = solver.solveSudoku(read_question(), 1, true);
             if (result.result) {
-                fill_sudoku_table("ar", memoMapToAnswer(result.memoMap));
+                fill_sudoku_table("ar", solver.memoMapToAnswer(result.memoMap));
                 if (result.dup) {
-                    fill_sudoku_table("aa", memoMapToAnswer(result.secondResult.memoMap));
+                    fill_sudoku_table("aa", solver.memoMapToAnswer(result.secondResult.memoMap));
                     document.getElementById("analysis-result-text").innerText = "Q has multiple answers.";
                     document.getElementById("another-answer-text").innerText = "This is second answer.";
                     document.getElementById("analysis-result-text").className = "analysis-result transparent invalid";

@@ -103,6 +103,7 @@ input.cell {
     font-size: 50px;
     text-align: center;
     background-color: #f0fff0;
+    -webkit-appearance: none;
 }
 
 table {
