@@ -34,6 +34,9 @@
                         if (input_mode) {
                             input.className = "cell-input";
                             input.addEventListener("input", on_input_cell);
+                            input.addEventListener("keydown", function(event) {
+                                on_keydown_cell(this, event)
+                            });
                         } else {
                             input.className = "cell";
                             input.disabled = true;
@@ -152,16 +155,35 @@
             document.getElementById("another-answer-text").innerText = "";
         }
 
+        function on_keydown_cell(elem, event) {
+            if (event && event.keyCode == 8) {
+                if (elem.value.length >= 1) {
+                    elem.value = "";
+                } else {
+                    var cells = document.getElementsByClassName("cell-input");
+                    for (var i = 1; i < cells.length; i++) {
+                        if (cells[i] == elem) {
+                            cells[i - 1].focus();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         function on_input_cell() {
             var elem = this;
             if (elem.value == "0" || elem.value == " ") {
                 elem.value = " ";
             } else if (elem.value.match(/[^\d ]/)) {
-                elem.value = "";
+                elem.value = " ";
             }
 
             if (elem.value.length >= 2) {
                 elem.value = elem.value[1];
+                if (elem.value == "0") {
+                    elem.value = " ";
+                }
             }
 
             if (elem.value.length == 1) {

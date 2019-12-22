@@ -1,3 +1,7 @@
+html {
+    touch-action: manipulation
+}
+
 h1 {
     text-align: center;
     margin: 5px 0px 5px 0px;
@@ -49,9 +53,10 @@ input.button {
     font-size: xx-large;
     cursor: pointer;
     border-style: none;
+    -webkit-appearance: none;
 }
 
-.header{
+.header {
     background-color: whitesmoke;
     color: black;
 }
@@ -75,7 +80,7 @@ input.button-sub {
     border-style: none;
 }
 
-input{
+input {
     border-style: none;
     text-align: center;
 }
@@ -134,7 +139,7 @@ span.as-tab {
 }
 
 .invalid {
-    background-color: maroon;
+    background-color: tomato;
 }
 
 .valid {
