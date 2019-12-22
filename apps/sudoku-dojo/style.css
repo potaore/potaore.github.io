@@ -41,6 +41,7 @@ select {
     height: 60px;
     width: 195px;
     font-size: x-large;
+    box-sizing: border-box;
 }
 
 input {
