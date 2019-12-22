@@ -42,22 +42,34 @@ select {
     font-size: x-large;
 }
 
-button {
+input {
+    padding: 0px;
+    margin: 0px;
+}
+
+input.button {
     height: 50px;
     font-size: x-large;
     cursor: pointer;
     border-style: none;
 }
 
-button:hover {
+input.button {
+    height: 50px;
+    font-size: x-large;
+    cursor: pointer;
+    border-style: none;
+}
+
+input.button:hover {
     background-color: lightblue;
 }
 
-button.button-main {
+input.button-main {
     width: 110px;
 }
 
-button.button-sub {
+input.button-sub {
     width: 63px;
 }
 
@@ -74,8 +86,8 @@ input{
 }
 
 input.cell-input {
-    height: 1.55em;
-    width: 1.55em;
+    height: 78px;
+    width: 78px;
     font-size: 50px;
     text-align: center;
 }
@@ -85,8 +97,8 @@ input.cell-input:focus {
 }
 
 input.cell {
-    height: 1.55em;
-    width: 1.55em;
+    height: 78px;
+    width: 78px;
     font-size: 50px;
     text-align: center;
     background-color: #f0fff0;

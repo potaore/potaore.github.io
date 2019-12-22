@@ -264,11 +264,11 @@
                       <option value="another-answer">Another Answer</option>
                     </select>
                     </td>
-                    <td class="transparent"><button id="button-back" class="input-question button-sub" onclick="on_back()">←</button></td>
+                    <td class="transparent"><input type="button" id="button-back" class="button input-question button-sub" onclick="on_back()" value = "←"/></td>
                     <td class="transparent"><input type="number" id="q-number" class="input-question" maxlength="4" max="3000" min="0" value="0" onblur="on_q_number()" /></td>
-                    <td class="transparent"><button id="button-next" class="input-question button-sub" onclick="on_next()">→</button></td>
-                    <td class="transparent"><button id="button-analize" class="input-question button-main" onclick="on_analize()">Analize</button></td>
-                    <td class="transparent"><button id="button-clear" class="input-question button-main" onclick="on_clear()">Clear</button></td>
+                    <td class="transparent"><input type="button" id="button-next" class="button input-question button-sub" onclick="on_next()" value="→"></td>
+                    <td class="transparent"><input type="button" id="button-analize" class="button input-question button-main" onclick="on_analize()" value ="Analize"></td>
+                    <td class="transparent"><input type="button" id="button-clear" class="button input-question button-main" onclick="on_clear()" value="Clear"></td>
                     <td class="transparent">
                         <span id="analysis-result-text" class="analysis-result transparent" style="display: none;"></span>
                         <span id="another-answer-text" class="another-answer transparent" style="display: none;"></span>
