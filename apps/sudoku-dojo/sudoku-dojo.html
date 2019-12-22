@@ -29,7 +29,7 @@
                         if ((Math.floor((j - 1) / 3) + Math.floor((i - 1) / 3) * 3 + 1) != bi) continue;
                         if (!rows_memo[bi][i]) rows_memo[bi][i] = table.insertRow(-1);
                         var input = document.createElement("input");
-                        input.type = "text";
+                        input.type = "tel";
                         input.id = initial_id + i + "-" + j;
                         if (input_mode) {
                             input.className = "cell-input";
@@ -88,7 +88,9 @@
             }
             elem.value = q_number;
             if (q_number == 0) {
-                clear_sudoku_tables();
+                clear_sudoku_table("ar");
+                clear_sudoku_table("aa");
+                clear_messages();
             } else if (q_number) {
                 show_question(q_number);
             }
@@ -256,19 +258,19 @@
         <div id="menu-div">
             <table id="menu" class="transparent">
                 <tr class="transparent">
-                    <td class="transparent"><span>Mode:</span></td>
+                    <td class="transparent"><span>Mode</span></td>
                     <td class="transparent">
-                        <select id="view-mode-select" onchange="on_change_mode(this)">
+                        <select id="view-mode-select" class="header" onchange="on_change_mode(this)">
                       <option value="input-question">Input Question</option>
                       <option value="analysis-result">Analysis Result</option>
                       <option value="another-answer">Another Answer</option>
                     </select>
                     </td>
-                    <td class="transparent"><input type="button" id="button-back" class="button input-question button-sub" onclick="on_back()" value = "←"/></td>
-                    <td class="transparent"><input type="number" id="q-number" class="input-question" maxlength="4" max="3000" min="0" value="0" onblur="on_q_number()" /></td>
-                    <td class="transparent"><input type="button" id="button-next" class="button input-question button-sub" onclick="on_next()" value="→"></td>
-                    <td class="transparent"><input type="button" id="button-analize" class="button input-question button-main" onclick="on_analize()" value ="Analize"></td>
-                    <td class="transparent"><input type="button" id="button-clear" class="button input-question button-main" onclick="on_clear()" value="Clear"></td>
+                    <td class="transparent"><input type="button" id="button-back" class="button input-question button-sub header" onclick="on_back()" value="←" /></td>
+                    <td class="transparent"><input type="number" id="q-number" class="input-question header" maxlength="4" max="3000" min="0" value="0" onblur="on_q_number()" /></td>
+                    <td class="transparent"><input type="button" id="button-next" class="button input-question button-sub header" onclick="on_next()" value="→"></td>
+                    <td class="transparent"><input type="button" id="button-analize" class="button input-question button-main header" onclick="on_analize()" value="Analize"></td>
+                    <td class="transparent"><input type="button" id="button-clear" class="button input-question button-main header" onclick="on_clear()" value="Clear"></td>
                     <td class="transparent">
                         <span id="analysis-result-text" class="analysis-result transparent" style="display: none;"></span>
                         <span id="another-answer-text" class="another-answer transparent" style="display: none;"></span>
@@ -339,32 +341,29 @@
                 <tr class="transparent">
                     <td class="transparent close"><span id="switch1o" class="switch-o as-tab" onclick='open_pane("switch1", "overview")'>＋概要</span></td>
                     <td class="transparent open"><span id="switch1c" class="switch-c as-tab" style="display:none;" onclick='close_pane()'>－概要</span></td>
-                    <td class="transparent close"><span id="switch2o" class="switch-o as-tab close" onclick='open_pane("switch2", "about-this-program")'>＋雑記</span></td>
-                    <td class="transparent open"><span id="switch2c" class="switch-c as-tab" style="display:none;" onclick='close_pane()'>－雑記</span></td>
+                    <td class="transparent close"><span id="switch5o" class="switch-o as-tab close" onclick='open_pane("switch5", "news")'>＋News</span></td>
+                    <td class="transparent open"><span id="switch5c" class="switch-c as-tab" style="display:none;" onclick='close_pane()'>－News</span></td>
                     <td class="transparent close"><span id="switch3o" class="switch-o as-tab close" onclick='open_pane("switch3", "about-questions")'>＋問題</span></td>
                     <td class="transparent open"><span id="switch3c" class="switch-c as-tab" style="display:none;" onclick='close_pane()'>－問題</span></td>
+                    <td class="transparent close"><span id="switch2o" class="switch-o as-tab close" onclick='open_pane("switch2", "about-this-program")'>＋雑記</span></td>
+                    <td class="transparent open"><span id="switch2c" class="switch-c as-tab" style="display:none;" onclick='close_pane()'>－雑記</span></td>
+                    <td class="transparent close"><span id="switch4o" class="switch-o as-tab close" onclick='open_pane("switch4", "contact")'>＋連絡先</span></td>
+                    <td class="transparent open"><span id="switch4c" class="switch-c as-tab" style="display:none;" onclick='close_pane()'>－連絡先</span></td>
                 </tr>
             </table>
 
             <div id="overview" class="details" style="display:none;">
-                <span>数独(ナンプレ)を解析するプログラムです。</span>
+                <h3>数独(ナンプレ)を解析するプログラムです。</h3>
                 <ul>
                     <li>単一解であることを保証して解きます</li>
                     <li>高難度のオリジナル問題を大量に公開しています</li>
                     <li>問題番号が進むにつれ、より難しい問題が増えてきます</li>
                 </ul>
             </div>
-            <div id="about-this-program" class="details" style="display:none;">
-                <h3>あらゆる問題を素早く解析するプログラム</h3>
+            <div id="news" class="details" style="display:none;">
+                <h4>2019/12/22</h4>
                 <p>
-                    「ナンプレを解くプログラム」の作成に挑戦し、公開されている方は沢山います。 しかし、それらのプログラムのほとんどは一つの解答を発見できた段階で「解いた」という扱いをしています。私は、単独解であること論理的、もしくは総当たりで保証出来なければ「解いた」とは言えないと考えます。当然、重解が存在するのであれば、それを指摘出来なければいけません。また、ほとんど空白のような不完全な問題や、世界最難関クラスの問題を瞬時に解くようなプログラムは滅多にありません。 今回私が目指したのは、これらを全て満たすようなプログラムの作成と、高難度の問題生成です。
-                </p>
-                <h3>世界にある難問について</h3>
-                <p>
-                    まず、日本国内のサイトには私のプログラムにとって難問と呼べるものは見つけられませんでした。 ほどほどのスペックの私のPCで、解くまでに最大でも50msぐらいの問題しか見当たりませんでした（人間向けの難問の多くは1ms、ほとんどは10msを切ります）。 それに対し、理系の大学教授が「世界一難しい」と銘打って公開している問題等はやはり一段難しいです。100ms以上かかるものありました。
-                </p>
-                <p>
-                    しかし、世界は広いもので、海外のフォーラムを探すと何万もの問題が公開されていたり、その中から特に難しい問題をピックアップしている方もいました。 そのレベルになると、100ms以上かかるのは当然のこと、発見当時は最悪4000ms近くかかるものもありました。 現在はそれらの問題が2000ms以下で解ける状態です。 それなりのスピードになったと実感していますが、スマホ等でこういった難問を瞬時に解析できるレベルまでには至りませんでした。
+                    1.0.0 を公開しました。現在問題は4000問、難易度を上げていき10000問まで公開予定です。
                 </p>
             </div>
             <div id="about-questions" class="details" style="display:none;">
@@ -374,14 +373,43 @@
                 </p>
                 <p>
                     1000問区切り：json配列形式<br>
-                    <a href="./questions_00001_01000.json">00001-01000</a>
-                    <a href="./questions_01001_02000.json">01001-02000</a>
-                    <a href="./questions_02001_03000.json">02001-03000</a>
-                    <a href="./questions_03001_04000.json">03001-04000</a>
+                    <a href="./questions_00001_01000.json" target="_blank">00001-01000</a>
+                    <a href="./questions_01001_02000.json" target="_blank">01001-02000</a>
+                    <a href="./questions_02001_03000.json" target="_blank">02001-03000</a>
+                    <a href="./questions_03001_04000.json" target="_blank">03001-04000</a>
                 </p>
                 <h3>問題の著作権等</h3>
                 <p>
                     ここで公開している問題は基本的に自由に掲載、利用していただいてかまいません。ただし、著作権は放棄していません。商用での利用はご相談ください。
+                </p>
+            </div>
+            <div id="about-this-program" class="details" style="display:none;">
+                <h3>あらゆる問題を素早く解析するプログラム</h3>
+                <p>
+                    「ナンプレを解くプログラム」の作成に挑戦し、公開されている方は沢山います。 しかし、それらのプログラムのほとんどは一つの解答を発見できた段階で「解いた」という扱いをしています。私は、単独解であること論理的、もしくは総当たりで保証出来なければ「解いた」とは言えないと考えます。当然、重解が存在するのであれば、それを指摘出来なければいけません。また、ほとんど空白のような不完全な問題や、世界最難関クラスの問題を瞬時に解くようなプログラムは滅多にありません。 今回私が目指したのは、これらを全て満たすようなプログラムの作成と、高難度の問題生成です。「Sudoku-Dojo」は問題を解析するプログラムと、これを利用して作成した問題、そしてこのページの機能の総称です。
+                </p>
+                <h3>世界にある難問について</h3>
+                <p>
+                    まず、日本国内のサイトには私のプログラムにとって難問と呼べるものは見つけられませんでした。 ほどほどのスペックの私のPCで、解くまでに最大でも50msぐらいの問題しか見当たりませんでした（人間向けの難問の多くは1ms、ほとんどは10msを切ります）。 それに対し、理系の大学教授が「世界一難しい」と銘打って公開している問題等はやはり一段難しいです。100ms以上かかるものありました。
+                </p>
+                <p>
+                    しかし、世界は広いもので、海外のフォーラムを探すと何万もの問題が公開されていたり、その中から特に難しい問題をピックアップしている方もいました。 そのレベルになると、100ms以上かかるのは当然のこと、発見当時は最悪4000ms近くかかるものもありました。 現在はそれらの問題が2000ms以下で解ける状態です。 それなりのスピードになったと実感していますが、スマホ等でこういった難問を瞬時に解析できるレベルまでには至りませんでした。
+                </p>
+                <h3>プログラムについて</h3>
+                <p>
+                    ソースコードはgithubで公開しています。<a href="https://github.com/potaore/sudoku" target="_blank">sudoku</a>
+                </p>
+                <p>
+                    ※Google App Script で動作させるため、また、高速化のため、大分古い書き方になっています。（プログラム勉強中の方は真似しないようにしてくだいね。）
+                </p>
+            </div>
+            <div id="contact" class="details" style="display:none;">
+                <p>
+                    バグや、問題不備等の連絡をいただけると幸いです。
+                </p>
+                <p>
+                    <span>Twitter : @potalong_oreo</span><br>
+                    <span>e-mail : potaore@gmail.com</span><br>
                 </p>
             </div>
         </div>

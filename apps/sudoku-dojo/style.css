@@ -5,7 +5,7 @@ h1 {
 }
 
 div#menu-div {
-    height: 55px;
+    height: 65px;
 }
 
 table#menu {
@@ -17,7 +17,7 @@ div#explanations {
 }
 
 div#conten-wrapper {
-    width: 755px;
+    width: 780px;
     margin: auto;
 }
 
@@ -29,36 +29,31 @@ li {
     font-size: x-large;
 }
 
-p {
-    font-size: large;
-}
-
 span {
     font-size: xx-large;
 }
 
 select {
-    height: 50px;
+    height: 60px;
     font-size: x-large;
 }
 
 input {
     padding: 0px;
     margin: 0px;
+    border-radius: 1px;
+    height: 60px;
 }
 
 input.button {
-    height: 50px;
-    font-size: x-large;
+    font-size: xx-large;
     cursor: pointer;
     border-style: none;
 }
 
-input.button {
-    height: 50px;
-    font-size: x-large;
-    cursor: pointer;
-    border-style: none;
+.header{
+    background-color: whitesmoke;
+    color: black;
 }
 
 input.button:hover {
@@ -66,30 +61,29 @@ input.button:hover {
 }
 
 input.button-main {
-    width: 110px;
+    width: 115px;
 }
 
 input.button-sub {
-    width: 63px;
+    width: 70px;
 }
 
 #q-number {
-    height: 48px;
-    width: 100px;
-    font-size: x-large;
+    width: 110px;
+    font-size: xx-large;
     text-align: right;
     border-style: none;
 }
 
 input{
     border-style: none;
+    text-align: center;
 }
 
 input.cell-input {
-    height: 78px;
-    width: 78px;
+    height: 80px;
+    width: 80px;
     font-size: 50px;
-    text-align: center;
 }
 
 input.cell-input:focus {
@@ -97,8 +91,8 @@ input.cell-input:focus {
 }
 
 input.cell {
-    height: 78px;
-    width: 78px;
+    height: 80px;
+    width: 80px;
     font-size: 50px;
     text-align: center;
     background-color: #f0fff0;
@@ -145,4 +139,8 @@ span.as-tab {
 
 .valid {
     background-color: seagreen;
+}
+
+.details {
+    font-size: x-large;
 }
