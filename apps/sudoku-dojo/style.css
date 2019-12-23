@@ -44,6 +44,32 @@ select {
     box-sizing: border-box;
 }
 
+option.option-benchmark {
+    background-color: aquamarine;
+}
+
+input#button-benchmark-start {
+    background-color: whitesmoke;
+    color: black;
+    width: 240px;
+}
+
+input#button-benchmark-stop {
+    background-color: indianred;
+    color: black;
+    width: 240px;
+}
+
+textarea#benchmark-result {
+    resize: none;
+    width: 750px;
+    height: 700px;
+    background-color: black;
+    color: greenyellow;
+    font-size: xx-large;
+    border-style: none;
+}
+
 input {
     padding: 0px;
     margin: 0px;
@@ -80,6 +106,10 @@ input.button-sub {
     font-size: xx-large;
     text-align: right;
     border-style: none;
+}
+
+div#cells-wrapper {
+    height: 785px;
 }
 
 input {
