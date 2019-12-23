@@ -238,7 +238,7 @@
             if (result.result) {
                 fill_sudoku_table("ar", result.answer);
                 if (result.dup) {
-                    fill_sudoku_table("aa", result.answer);
+                    fill_sudoku_table("aa", result.secondResult.answer);
                     document.getElementById("analysis-result-text").innerText = "Q has multiple answers.";
                     document.getElementById("another-answer-text").innerText = "This is second answer.";
                     document.getElementById("analysis-result-text").className = "analysis-result transparent invalid";
@@ -368,7 +368,7 @@
 
 <body onload="init()">
     <div id="conten-wrapper">
-        <h1>Sudoku-Dojo v1.1.1</h1>
+        <h1>Sudoku-Dojo v1.1.2</h1>
         <div id="menu-div">
             <table id="menu" class="transparent">
                 <tr class="transparent">
