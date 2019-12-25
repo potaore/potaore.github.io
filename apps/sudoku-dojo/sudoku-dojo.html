@@ -71,7 +71,7 @@
         function on_next() {
             var elem = document.getElementById("q-number");
             var q_number = parseInt(elem.value);
-            if (q_number >= 4000) {} else {
+            if (q_number >= 6000) {} else {
                 if (q_number || q_number == 0) {
                     q_number++;
                 } else {
@@ -87,8 +87,8 @@
             var q_number = parseInt(elem.value);
             if (!q_number || q_number <= 0) {
                 q_number = 0;
-            } else if (q_number > 4000) {
-                q_number = 4000;
+            } else if (q_number > 6000) {
+                q_number = 6000;
             }
             elem.value = q_number;
             if (q_number == 0) {
@@ -104,7 +104,9 @@
             "questions_00001_01000.json",
             "questions_01001_02000.json",
             "questions_02001_03000.json",
-            "questions_03001_04000.json"
+            "questions_03001_04000.json",
+            "questions_04001_05000.json",
+            "questions_05001_06000.json"
         ];
 
         function show_question(q_number) {
@@ -366,7 +368,7 @@
 
 <body onload="init()">
     <div id="conten-wrapper">
-        <h1>Sudoku-Dojo v1.2.0</h1>
+        <h1>Sudoku-Dojo v1.2.1</h1>
         <div id="menu-div">
             <table id="menu" class="transparent">
                 <tr class="transparent">
@@ -449,7 +451,7 @@
                 </table>
             </div>
             <div class="benchmark" style="display: none;">
-                <input type="button" id="button-benchmark-start" class="button benchmark" onclick="start_benchmark()" value="Solve q1-q4000">
+                <input type="button" id="button-benchmark-start" class="button benchmark" onclick="start_benchmark()" value="Solve q1-q6000">
                 <input type="button" id="button-benchmark-stop" class="button" onclick="stop_benchmark()" value="Stop" style="display: none;">
                 <textarea id="benchmark-result" disabled="disabled"></textarea>
             </div>
@@ -480,6 +482,10 @@
                 </ul>
             </div>
             <div id="news" class="details" style="display:none;">
+                <h4>2019/12/25 v1.2.1</h4>
+                <p>
+                     これまでより難易度の高い問題4001～6000を公開しました。
+                </p>
                 <h4>2019/12/24 v1.2.0</h4>
                 <p>
                      解析スピードが大幅に改善されました。※参考 Benchmarkモード（～4000）35408ms → 22209ms
@@ -508,6 +514,8 @@
                     <a href="./questions_01001_02000.json" target="_blank">01001-02000</a>
                     <a href="./questions_02001_03000.json" target="_blank">02001-03000</a>
                     <a href="./questions_03001_04000.json" target="_blank">03001-04000</a>
+                    <a href="./questions_04001_05000.json" target="_blank">04001-05000</a>
+                    <a href="./questions_05001_06000.json" target="_blank">05001-06000</a>
                 </p>
                 <h3>問題の著作権等</h3>
                 <p>
