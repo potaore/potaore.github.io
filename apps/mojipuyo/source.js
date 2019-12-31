@@ -1,39 +1,39 @@
-//ƒtƒB[ƒ‹ƒh‚Ì‘å‚«‚³’è‹`
+//ãƒ•ã‚£ãƒ¼ãƒ«ãƒ‰ã®å¤§ãã•å®šç¾©
 SizeX = 6;
 SizeY = 14;
 
-//ƒOƒ‰ƒtƒBƒbƒN’è‹`
+//ã‚°ãƒ©ãƒ•ã‚£ãƒƒã‚¯å®šç¾©
 ItemGraphic = [];
-ItemGraphic[0] = " ";
-ItemGraphic[1] = "¡";
-ItemGraphic[2] = "œ";
-ItemGraphic[3] = "£";
-ItemGraphic[4] = "š";
+ItemGraphic[0] = "â–¡";
+ItemGraphic[1] = "â– ";
+ItemGraphic[2] = "â—";
+ItemGraphic[3] = "â–²";
+ItemGraphic[4] = "â˜…";
 
-//•ûŒü‚Ì’è‹`
+//æ–¹å‘ã®å®šç¾©
 Left = 0;
 Up = 1;
 Right = 2;
 Down = 3;
 Rotate = 9;
 
-//•ûŒü‚É‘Î‰‚µ‚½‘Š‘ÎÀ•W
+//æ–¹å‘ã«å¯¾å¿œã—ãŸç›¸å¯¾åº§æ¨™
 directionConv = [];
 directionConv[Left] = [-1, 0];
 directionConv[Up] = [0, -1];
 directionConv[Right] = [1, 0];
 directionConv[Down] = [0, 1];
 
-//ƒL[“ü—Íî•ñŠi”[êŠ
+//ã‚­ãƒ¼å…¥åŠ›æƒ…å ±æ ¼ç´å ´æ‰€
 Key = null;
 
-//Œ»İ‚Ì‹Ç–Ê
+//ç¾åœ¨ã®å±€é¢
 var field;
 
-//—‰º’†‚Ì‚Õ‚æ
+//è½ä¸‹ä¸­ã®ã·ã‚ˆ
 var puyo;
 
-//ƒL[“ü—Í‚©‚ç•ûŒü‚Ö•ÏŠ·
+//ã‚­ãƒ¼å…¥åŠ›ã‹ã‚‰æ–¹å‘ã¸å¤‰æ›
 keyDirectionConv = [];
 keyDirectionConv[37] =Left;
 keyDirectionConv[38] =Up;
@@ -41,17 +41,17 @@ keyDirectionConv[39] =Right;
 keyDirectionConv[40] =Down;
 keyDirectionConv[90] = Rotate;
 
-//ƒQ[ƒ€‚Ìó‘Ô’è‹`
+//ã‚²ãƒ¼ãƒ ã®çŠ¶æ…‹å®šç¾©
 GameState = [];
-//—‰º’†‚Ì‚Õ‚æ‚ğ‘€ì‚Å‚«‚éó‘Ô
+//è½ä¸‹ä¸­ã®ã·ã‚ˆã‚’æ“ä½œã§ãã‚‹çŠ¶æ…‹
 GameState.Wait = 0;
-//”z’u‚ªŠm’è‚µ‚Ä—‰º‚µ‚Ä‚¢‚é‚Æ‚«
+//é…ç½®ãŒç¢ºå®šã—ã¦è½ä¸‹ã—ã¦ã„ã‚‹ã¨ã
 GameState.Fall = 1;
-//Á‚·ˆ—‚ğs‚Á‚Ä‚¢‚é‚Æ‚«
+//æ¶ˆã™å‡¦ç†ã‚’è¡Œã£ã¦ã„ã‚‹ã¨ã
 GameState.Vanish = 2;
-//ƒ|[ƒY
+//ãƒãƒ¼ã‚º
 GameState.Pause = 3;
-//Œ»İ‚ÌƒQ[ƒ€‚Ìó‘Ô
+//ç¾åœ¨ã®ã‚²ãƒ¼ãƒ ã®çŠ¶æ…‹
 var gamestate = GameState.Wait;
 var gamestateLog = 0;
 
