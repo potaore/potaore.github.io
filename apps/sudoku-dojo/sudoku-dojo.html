@@ -14,6 +14,7 @@
             create_sudoku_table("q", true);
             create_sudoku_table("ar", false);
             create_sudoku_table("aa", false);
+            get_worker();
         }
 
         function create_sudoku_table(initial_id, input_mode) {
@@ -34,6 +35,9 @@
                             input.addEventListener("input", on_input_cell);
                             input.addEventListener("keydown", function(event) {
                                 on_keydown_cell(this, event)
+                            });
+                            input.addEventListener("paste", function(event) {
+                                on_paste(event);
                             });
                         } else {
                             input.className = "cell";
@@ -159,6 +163,7 @@
 
         function clear_messages() {
             document.getElementById("analysis-result-text").innerText = "";
+            document.getElementById("analysis-result-time").innerText = "";
             document.getElementById("another-answer-text").innerText = "";
         }
 
@@ -208,13 +213,42 @@
             clear_sudoku_table("aa");
         }
 
+        function on_paste(event) {
+            var text = (event.clipboardData || window.clipboardData).getData('text');
+            if (!text) return;
+            if (text.match(/[\t,]/)) {
+                var lines = text.split("\n");
+                text = lines.reduce(function(t, line) {
+                    return t + line.split(/[\t,]/).reduce(function(t, ch) {
+                        return t + (parseInt(ch) ? ch : ".");
+                    }, "");
+                }, "");
+            }
+            var q = [];
+            for (var i = 0; i < 9; i++) {
+                var line = [];
+                for (var j = 0; j < 9; j++) {
+                    var value = parseInt(text[i * 9 + j]);
+                    if (value) line.push(value);
+                    else line.push(0);
+                }
+                q.push(line)
+            }
+            document.getElementById("q-number").value = 0;
+            clear_sudoku_tables();
+            setTimeout(function() {
+                fill_sudoku_table("q", q);
+            }, 1);
+        }
+
         function on_analize() {
             clear_sudoku_table("ar");
             clear_sudoku_table("aa");
             worker = get_worker();
             worker.postMessage([read_question()]);
+            var start_time = performance.now();
             worker.onmessage = function(e) {
-                on_result(e.data[0][0]);
+                on_result(e.data[0][0], (performance.now() - start_time + "").replace(/(\.\d\d\d)\d*/, "$1"));
                 set_disabled_calss("header", false);
             };
             set_disabled_calss("header", true);
@@ -225,6 +259,8 @@
         function get_worker() {
             if (!worker) {
                 worker = new Worker('solve_sudoku.js');
+                worker.postMessage([read_question()]);
+                worker.postMessage([read_question()]);
             }
             return worker;
         }
@@ -233,30 +269,31 @@
             if (worker) {
                 worker.terminate();
                 worker = null;
+                get_worker();
             }
         }
 
-        function on_result(result) {
+        function on_result(result, time) {
             if (result.result) {
                 fill_sudoku_table("ar", result.answer);
                 if (result.dup) {
                     fill_sudoku_table("aa", result.secondResult.answer);
-                    document.getElementById("analysis-result-text").innerText = "Q has multiple answers.";
-                    document.getElementById("another-answer-text").innerText = "This is second answer.";
+                    document.getElementById("analysis-result-text").innerText = "multiple answers";
+                    document.getElementById("another-answer-text").innerText = "second answer";
                     document.getElementById("analysis-result-text").className = "analysis-result transparent invalid";
                     document.getElementById("another-answer-text").className = "another-answer transparent invalid";
                 } else {
-                    document.getElementById("analysis-result-text").innerText = "Q has unique answer.";
-                    document.getElementById("another-answer-text").innerText = "Q has no another answers.";
+                    document.getElementById("analysis-result-text").innerText = "unique answer";
+                    document.getElementById("another-answer-text").innerText = "no another answer";
                     document.getElementById("analysis-result-text").className = "analysis-result transparent valid";
                     document.getElementById("another-answer-text").className = "another-answer transparent valid";
                 }
             } else {
-                document.getElementById("analysis-result-text").innerText = "Q has no answer.";
+                document.getElementById("analysis-result-text").innerText = "no answer";
                 document.getElementById("analysis-result-text").className = "analysis-result transparent invalid";
                 document.getElementById("another-answer-text").className = "another-answer transparent invalid";
             }
-
+            document.getElementById("analysis-result-time").innerText = ":" + time + "ms";
             var elem = document.getElementById("view-mode-select");
             elem.value = "analysis-result";
             on_change_mode(elem);
@@ -287,20 +324,20 @@
                     questions = questions.concat(get_questions_1000(questions_files[i]));
                 }
                 worker.postMessage(questions);
-                var start_time = Date.now();
+                var start_time = performance.now();
                 var end_time;
-                var lap_start_time = Date.now();
+                var lap_start_time = performance.now();
                 var lap_end_time;
                 var result_elem = document.getElementById("benchmark-result");
                 result_elem.value = "";
                 var q100_count = 0;
                 worker.onmessage = function(e) {
-                    lap_end_time = Date.now();
-                    result_elem.value += "q" + padding05(q100_count * 100 + 1) + "-q" + padding05(100 + q100_count * 100) + "\t" + (lap_end_time - lap_start_time) + "ms" + "\n";
-                    lap_start_time = Date.now();
+                    lap_end_time = performance.now();
+                    result_elem.value += "q" + padding05(q100_count * 100 + 1) + "-q" + padding05(100 + q100_count * 100) + "\t" + (lap_end_time - lap_start_time + "").replace(/(\.\d\d\d)\d*/, "$1") + "ms" + "\n";
+                    lap_start_time = performance.now();
                     if (e.data[1]) {
-                        end_time = Date.now();
-                        result_elem.value += "total\t" + (end_time - start_time) + "ms";
+                        end_time = performance.now();
+                        result_elem.value += "total\t" + (end_time - start_time + "").replace(/(\.\d\d\d)\d*/, "$1") + "ms";
                         end_benchmark_ui();
                     }
                     result_elem.scrollTop = result_elem.scrollHeight - result_elem.clientHeight;
@@ -368,7 +405,7 @@
 
 <body onload="init()">
     <div id="conten-wrapper">
-        <h1>Sudoku-Dojo v1.3.1</h1>
+        <h1>Sudoku-Dojo v1.3.2</h1>
         <div id="menu-div">
             <table id="menu" class="transparent">
                 <tr class="transparent">
@@ -386,10 +423,9 @@
                     <td class="transparent"><input type="button" id="button-analize" class="button input-question button-main header" onclick="on_analize()" value="Analize">
                     </td>
                     <td class="transparent"><input type="button" id="button-clear" class="button input-question button-main header" onclick="on_clear()" value="Clear"></td>
-                    <td class="transparent">
-                        <span id="analysis-result-text" class="analysis-result transparent" style="display: none;"></span>
-                        <span id="another-answer-text" class="another-answer transparent" style="display: none;"></span>
-                    </td>
+                    <td class="transparent"><span id="analysis-result-text" class="analysis-result transparent" style="display: none;"></span></td>
+                    <td class="transparent"><span id="analysis-result-time" class="analysis-result transparent" style="display: none;"></span></td>
+                    <td class="transparent"><span id="another-answer-text" class="another-answer transparent" style="display: none;"></span></td>
                 </tr>
             </table>
         </div>
@@ -481,6 +517,10 @@
                     <li>高難度のオリジナル問題を大量に公開しています</li>
                     <li>問題番号が進むにつれ、より難しい問題が増えてきます</li>
                 </ul>
+                <h3>問題入力</h3>
+                <p>
+                    セルにフォーカスされている状態でペースト入力を行えます。ペーストはタブ区切り、カンマ区切り、テキスト形式に対応しています。
+                </p>
                 <h3>プログラムについて</h3>
                 <p>
                     ソースコードはgithubで公開しています。<a href="https://github.com/potaore/sudoku" target="_blank">sudoku</a>
@@ -490,6 +530,10 @@
                 </p>
             </div>
             <div id="news" class="details" style="display:none;">
+                <h4>2020/01/01 v1.3.2</h4>
+                <p>
+                    問題解析にかかった時間を表示するようにしました。ペースト一括問題入力を行えるようになりました。
+                </p>
                 <h4>2019/12/31 v1.3.1</h4>
                 <p>
                     バグ修正を行いました。
