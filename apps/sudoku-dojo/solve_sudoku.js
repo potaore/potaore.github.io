@@ -2,7 +2,7 @@ var exports = exports;
 if (!exports) exports = {};
 var solver = exports;
 (function () {
-    var version = "1.3.2";
+    var version = "1.3.3";
     var CELL_LENGTH = 9;
 
     var hashMemo = [], hashMemoLog2 = [], hashLengthMemo = [];
@@ -56,7 +56,7 @@ var solver = exports;
     };
 
     var warmup = function () {
-        for (var i = 0; i < 10; i++)analizeSudoku(warmupq);
+        for (var i = 0; i < 10; i++) analizeSudoku(warmupq);
     };
 
     var infomations = {
@@ -84,6 +84,7 @@ var solver = exports;
     };
 
     var analizeSudoku = function (q) {
+        if (!validateQuestion(q)) return { result: false, dup: false, invalid: true, memoMap: getNewMemoMap(), msg: "ninvalid question", countMemo: null };
         return solveSudoku(transformQToBit(q), 1, true);
     };
 
@@ -161,6 +162,7 @@ var solver = exports;
 
         var looped = false;
         while (!solved) {
+            if ($g.leftCount >= 75) break;
             removeCount = 0;
             result.removeCount = 0;
 
@@ -174,7 +176,7 @@ var solver = exports;
             if (looped) break;
             removeCount = 0;
             result.removeCount = 0;
-            if ($g.leftCount >= 70) break;
+            if ($g.leftCount >= 65) break;
 
             for (var idxb = 1; idxb < CELL_LENGTH; idxb++) {
                 if (!removeByBlockAndLineColumnPatterns($g, $g.blocks[idxb], idxb, result)) return endAsError(memoMap);

@@ -75,7 +75,7 @@
         function on_next() {
             var elem = document.getElementById("q-number");
             var q_number = parseInt(elem.value);
-            if (q_number >= 6000) {} else {
+            if (q_number >= 7000) {} else {
                 if (q_number || q_number == 0) {
                     q_number++;
                 } else {
@@ -91,8 +91,8 @@
             var q_number = parseInt(elem.value);
             if (!q_number || q_number <= 0) {
                 q_number = 0;
-            } else if (q_number > 6000) {
-                q_number = 6000;
+            } else if (q_number > 7000) {
+                q_number = 7000;
             }
             elem.value = q_number;
             if (q_number == 0) {
@@ -110,7 +110,8 @@
             "questions_02001_03000.json",
             "questions_03001_04000.json",
             "questions_04001_05000.json",
-            "questions_05001_06000.json"
+            "questions_05001_06000.json",
+            "questions_06001_07000.json"
         ];
 
         function show_question(q_number) {
@@ -217,10 +218,11 @@
             var text = (event.clipboardData || window.clipboardData).getData('text');
             if (!text) return;
             if (text.match(/[\t,]/)) {
-                var lines = text.split("\n");
+                var lines = text.split(/\n/);
                 text = lines.reduce(function(t, line) {
-                    return t + line.split(/[\t,]/).reduce(function(t, ch) {
-                        return t + (parseInt(ch) ? ch : ".");
+                    var chars = line.split(/[\t,]/);
+                    return t + chars.reduce(function(t, ch) {
+                        return t + (parseInt(ch) ? parseInt(ch) : ".");
                     }, "");
                 }, "");
             }
@@ -405,7 +407,7 @@
 
 <body onload="init()">
     <div id="conten-wrapper">
-        <h1>Sudoku-Dojo v1.3.2</h1>
+        <h1>Sudoku-Dojo v1.3.3</h1>
         <div id="menu-div">
             <table id="menu" class="transparent">
                 <tr class="transparent">
@@ -488,7 +490,7 @@
                 </table>
             </div>
             <div class="benchmark" style="display: none;">
-                <input type="button" id="button-benchmark-start" class="button benchmark" onclick="start_benchmark()" value="Solve q1-q6000">
+                <input type="button" id="button-benchmark-start" class="button benchmark" onclick="start_benchmark()" value="Solve q1-q7000">
                 <input type="button" id="button-benchmark-stop" class="button" onclick="stop_benchmark()" value="Stop" style="display: none;">
                 <textarea id="benchmark-result" disabled="disabled"></textarea>
             </div>
@@ -530,6 +532,10 @@
                 </p>
             </div>
             <div id="news" class="details" style="display:none;">
+                <h4>2020/01/03 v1.3.3</h4>
+                <p>
+                    これまでより難易度の高い問題6001～7000を公開しました。ペースト一括問題入力のバグ修正を行いました。
+                </p>
                 <h4>2020/01/01 v1.3.2</h4>
                 <p>
                     問題解析にかかった時間を表示するようにしました。ペースト一括問題入力を行えるようになりました。
@@ -576,6 +582,7 @@
                     <a href="./questions_03001_04000.json" target="_blank">03001-04000</a>
                     <a href="./questions_04001_05000.json" target="_blank">04001-05000</a>
                     <a href="./questions_05001_06000.json" target="_blank">05001-06000</a>
+                    <a href="./questions_06001_07000.json" target="_blank">06001-07000</a>
                 </p>
                 <p>
                     1000問区切り：txt形式<br>
@@ -585,6 +592,7 @@
                     <a href="./questions_03001_04000.txt" target="_blank">03001-04000</a>
                     <a href="./questions_04001_05000.txt" target="_blank">04001-05000</a>
                     <a href="./questions_05001_06000.txt" target="_blank">05001-06000</a>
+                    <a href="./questions_06001_07000.txt" target="_blank">06001-07000</a>
                 </p>
                 <h3>問題の著作権等</h3>
                 <p>
