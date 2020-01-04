@@ -9,6 +9,7 @@
     <meta http-equiv="Content-Script-Type" content="text/javascript" />
 
     <title>Sudoku-Dojo</title>
+    <script type="text/javascript" src="./comp.js"></script>
     <script type="text/javascript">
         function init() {
             create_sudoku_table("q", true);
@@ -75,7 +76,7 @@
         function on_next() {
             var elem = document.getElementById("q-number");
             var q_number = parseInt(elem.value);
-            if (q_number >= 7000) {} else {
+            if (q_number >= 8000) {} else {
                 if (q_number || q_number == 0) {
                     q_number++;
                 } else {
@@ -91,8 +92,8 @@
             var q_number = parseInt(elem.value);
             if (!q_number || q_number <= 0) {
                 q_number = 0;
-            } else if (q_number > 7000) {
-                q_number = 7000;
+            } else if (q_number > 8000) {
+                q_number = 8000;
             }
             elem.value = q_number;
             if (q_number == 0) {
@@ -105,13 +106,14 @@
         }
 
         var questions_files = [
-            "questions_00001_01000.json",
-            "questions_01001_02000.json",
-            "questions_02001_03000.json",
-            "questions_03001_04000.json",
-            "questions_04001_05000.json",
-            "questions_05001_06000.json",
-            "questions_06001_07000.json"
+            "def_questions_00001_01000.txt",
+            "def_questions_01001_02000.txt",
+            "def_questions_02001_03000.txt",
+            "def_questions_03001_04000.txt",
+            "def_questions_04001_05000.txt",
+            "def_questions_05001_06000.txt",
+            "def_questions_06001_07000.txt",
+            "def_questions_07001_08000.txt"
         ];
 
         function show_question(q_number) {
@@ -133,7 +135,8 @@
                 var xmlHttp = new XMLHttpRequest();
                 xmlHttp.open("GET", file_name, false);
                 xmlHttp.send(null);
-                return questions_1000_cache[file_name] = JSON.parse(xmlHttp.responseText);
+                var deflated_qs = xmlHttp.responseText.split("\n");
+                return questions_1000_cache[file_name] = deflated_qs.map(dq => q_util.to_json(q_util.inflate(dq)));
             }
         }
 
@@ -490,7 +493,7 @@
                 </table>
             </div>
             <div class="benchmark" style="display: none;">
-                <input type="button" id="button-benchmark-start" class="button benchmark" onclick="start_benchmark()" value="Solve q1-q7000">
+                <input type="button" id="button-benchmark-start" class="button benchmark" onclick="start_benchmark()" value="Solve q1-q8000">
                 <input type="button" id="button-benchmark-stop" class="button" onclick="stop_benchmark()" value="Stop" style="display: none;">
                 <textarea id="benchmark-result" disabled="disabled"></textarea>
             </div>
@@ -532,6 +535,10 @@
                 </p>
             </div>
             <div id="news" class="details" style="display:none;">
+                <h4>2020/01/05</h4>
+                <p>
+                    これまでより難易度の高い問題7001～8000を公開しました。
+                </p>
                 <h4>2020/01/04 v1.3.5</h4>
                 <p>
                     軽微なバグ修正を行いました。
@@ -591,6 +598,7 @@
                     <a href="./questions_04001_05000.json" target="_blank">04001-05000</a>
                     <a href="./questions_05001_06000.json" target="_blank">05001-06000</a>
                     <a href="./questions_06001_07000.json" target="_blank">06001-07000</a>
+                    <a href="./questions_07001_08000.json" target="_blank">07001-08000</a>
                 </p>
                 <p>
                     1000問区切り：txt形式<br>
@@ -601,6 +609,7 @@
                     <a href="./questions_04001_05000.txt" target="_blank">04001-05000</a>
                     <a href="./questions_05001_06000.txt" target="_blank">05001-06000</a>
                     <a href="./questions_06001_07000.txt" target="_blank">06001-07000</a>
+                    <a href="./questions_07001_08000.txt" target="_blank">07001-08000</a>
                 </p>
                 <h3>問題の著作権等</h3>
                 <p>
@@ -619,7 +628,7 @@
                 <p>
                     しかし、世界は広いもので、海外のフォーラムを探すと何万もの問題が公開されていたり、その中から特に難しい問題をピックアップしている方もいました。 そのレベルになると、100ms以上かかるのは当然のこと、発見当時は最悪4000ms近くかかるものもありました。
                     <s> 現在はそれらの問題が2000ms以下で解ける状態です。
-                        それなりのスピードになったと実感していますが、スマホ等でこういった難問を瞬時に解析できるレベルまでには至りませんでした。</s> 【v1.3.0】解析時間は最大でも200ms程度に収まっています。また、最新機種のスマートフォン、タブレットであれば、私のPCと同等かそれ以上のスピードが出ることがわかっています。「あらゆる問題を瞬時（1秒未満）で解析できる」レベルに到達したと考えています。
+                        それなりのスピードになったと実感していますが、スマホ等でこういった難問を瞬時に解析できるレベルまでには至りませんでした。</s> 【v1.3.4】解析時間は最大でも150ms程度に収まっています。また、最新機種のスマートフォン、タブレットであれば、私のPCと同等かそれ以上のスピードが出ることがわかっています。「あらゆる問題を瞬時（1秒未満）で解析できる」レベルに到達したと考えています。
                 </p>
             </div>
             <div id="contact" class="details" style="display:none;">
