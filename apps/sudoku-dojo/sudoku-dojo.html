@@ -116,26 +116,32 @@
             "def_questions_07001_08000.txt"
         ];
 
-        function show_question(q_number) {
+        async function show_question(q_number) {
+            if (!q_number) {
+                clear_sudoku_tables();
+                return;
+            }
             var file_name = questions_files[parseInt((q_number - 1) / 1000)];
             if (!file_name) return;
-            var questions_10000 = get_questions_1000(file_name);
-            var question = questions_10000[(q_number - 1) % 1000];
             clear_sudoku_tables();
             clear_messages();
+            set_disabled_calss("header", true);
+            await new Promise(r => setTimeout(r, 1));
+            var questions_10000 = await get_questions_1000(file_name);
+            var question = questions_10000[(q_number - 1) % 1000];
             fill_sudoku_table("q", question);
+            set_disabled_calss("header", false);
         }
 
         var questions_1000_cache = {};
 
-        function get_questions_1000(file_name) {
+        async function get_questions_1000(file_name) {
             if (questions_1000_cache[file_name]) {
                 return questions_1000_cache[file_name];
             } else {
-                var xmlHttp = new XMLHttpRequest();
-                xmlHttp.open("GET", file_name, false);
-                xmlHttp.send(null);
-                var deflated_qs = xmlHttp.responseText.split("\n");
+                var response = await fetch(file_name);
+                var text = await response.text();
+                var deflated_qs = text.split("\n");
                 return questions_1000_cache[file_name] = deflated_qs.map(dq => q_util.to_json(q_util.inflate(dq)));
             }
         }
@@ -247,27 +253,32 @@
         }
 
         function on_analize() {
+            var worker = get_worker();
+            if (!worker) return;
+            set_disabled_calss("header", true);
             clear_sudoku_table("ar");
             clear_sudoku_table("aa");
-            worker = get_worker();
             worker.postMessage([read_question()]);
             var start_time = performance.now();
             worker.onmessage = function(e) {
                 on_result(e.data[0][0], (performance.now() - start_time + "").replace(/(\.\d\d\d)\d*/, "$1"));
                 set_disabled_calss("header", false);
             };
-            set_disabled_calss("header", true);
         }
 
         var worker;
 
         function get_worker() {
-            if (!worker) {
-                worker = new Worker('solve_sudoku.js');
-                worker.postMessage([read_question()]);
-                worker.postMessage([read_question()]);
+            if (window.Worker) {
+                if (!worker) {
+                    worker = new Worker('solve_sudoku.js');
+                    worker.postMessage([read_question()]);
+                    worker.postMessage([read_question()]);
+                }
+                return worker;
+            } else {
+                alert("ご利用のブラウザがwebworkerに対応していないため解析機能を利用できません");
             }
-            return worker;
         }
 
         function terminate_worker() {
@@ -321,37 +332,41 @@
             return question;
         }
 
-        function start_benchmark() {
-            if (window.Worker) {
-                var questions = [];
-                var worker = get_worker();
-                for (var i = 0; i < questions_files.length; i++) {
-                    questions = questions.concat(get_questions_1000(questions_files[i]));
-                }
-                worker.postMessage(questions);
-                var start_time = performance.now();
-                var end_time;
-                var lap_start_time = performance.now();
-                var lap_end_time;
-                var result_elem = document.getElementById("benchmark-result");
-                result_elem.value = "";
-                var q100_count = 0;
-                worker.onmessage = function(e) {
-                    lap_end_time = performance.now();
-                    result_elem.value += "q" + padding05(q100_count * 100 + 1) + "-q" + padding05(100 + q100_count * 100) + "\t" + (lap_end_time - lap_start_time + "").replace(/(\.\d\d\d)\d*/, "$1") + "ms" + "\n";
-                    lap_start_time = performance.now();
-                    if (e.data[1]) {
-                        end_time = performance.now();
-                        result_elem.value += "total\t" + (end_time - start_time + "").replace(/(\.\d\d\d)\d*/, "$1") + "ms";
-                        end_benchmark_ui();
-                    }
-                    result_elem.scrollTop = result_elem.scrollHeight - result_elem.clientHeight;
-                    q100_count++;
-                };
-                start_benchmark_ui();
-            } else {
-                //err
+        async function start_benchmark() {
+            var worker = get_worker();
+            if (!worker) return;
+            set_disabled_calss("header", true);
+            var result_elem = document.getElementById("benchmark-result");
+            result_elem.value = "# Loading Questions\n";
+            await new Promise(r => setTimeout(r, 1));
+            var questions = [];
+            for (var i = 0; i < questions_files.length; i++) {
+                var questions1000 = await get_questions_1000(questions_files[i]);
+                questions = questions.concat(questions1000);
+                result_elem.value += questions_files[i] + " loaded\n";
+
             }
+            result_elem.value += "\n";
+            start_benchmark_ui();
+            result_elem.value += "# Start Benchmark\n";
+            worker.postMessage(questions);
+            var start_time = performance.now();
+            var end_time;
+            var lap_start_time = performance.now();
+            var lap_end_time;
+            var q100_count = 0;
+            worker.onmessage = function(e) {
+                lap_end_time = performance.now();
+                result_elem.value += "q" + padding05(q100_count * 100 + 1) + "-q" + padding05(100 + q100_count * 100) + "\t" + (lap_end_time - lap_start_time + "").replace(/(\.\d\d\d)\d*/, "$1") + "ms" + "\n";
+                lap_start_time = performance.now();
+                if (e.data[1]) {
+                    end_time = performance.now();
+                    result_elem.value += "total\t" + (end_time - start_time + "").replace(/(\.\d\d\d)\d*/, "$1") + "ms";
+                    end_benchmark_ui();
+                }
+                result_elem.scrollTop = result_elem.scrollHeight - result_elem.clientHeight;
+                q100_count++;
+            };
         }
 
         function padding05(number) {
@@ -361,6 +376,12 @@
         function stop_benchmark() {
             terminate_worker();
             end_benchmark_ui();
+        }
+
+        function load_benchmark_ui() {
+            document.getElementById("button-benchmark-start").style.display = "none";
+            document.getElementById("button-benchmark-stop").style.display = "block";
+            set_disabled_calss("header", true);
         }
 
         function start_benchmark_ui() {
@@ -493,7 +514,7 @@
                 </table>
             </div>
             <div class="benchmark" style="display: none;">
-                <input type="button" id="button-benchmark-start" class="button benchmark" onclick="start_benchmark()" value="Solve q1-q8000">
+                <input type="button" id="button-benchmark-start" class="button benchmark header" onclick="start_benchmark()" value="Solve q1-q8000">
                 <input type="button" id="button-benchmark-stop" class="button" onclick="stop_benchmark()" value="Stop" style="display: none;">
                 <textarea id="benchmark-result" disabled="disabled"></textarea>
             </div>

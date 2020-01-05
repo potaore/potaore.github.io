@@ -49,9 +49,13 @@ option.option-benchmark {
 }
 
 input#button-benchmark-start {
-    background-color: whitesmoke;
-    color: black;
     width: 240px;
+}
+
+input#button-benchmark-start:disabled {
+    background-color: lightgrey;
+    cursor: default;
+    color: black;
 }
 
 input#button-benchmark-stop {
@@ -68,6 +72,11 @@ textarea#benchmark-result {
     color: greenyellow;
     font-size: xx-large;
     border-style: none;
+}
+
+textarea#benchmark-result:disabled {
+    background-color: black;
+    color: greenyellow;
 }
 
 input {
@@ -134,6 +143,10 @@ input.cell {
     text-align: center;
     background-color: #f0fff0;
     -webkit-appearance: none;
+}
+
+input.cell:disabled {
+    background-color: #f0fff0;
 }
 
 table {
