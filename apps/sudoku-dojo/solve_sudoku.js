@@ -2,7 +2,7 @@ var exports = exports;
 if (!exports) exports = {};
 var solver = exports;
 (function () {
-    var version = "1.6.1";
+    var version = "1.6.2";
     var pf;
     (function () {
         /*
@@ -31,7 +31,7 @@ var solver = exports;
     var LEN = 9;
     var NUMS;
     var hashMemo = [], hashMemoLog2 = [], hashLengthMemo = [];
-    var groupIds = { rows: {}, cols: {}, blos: {} };
+    var groupIds = { rows: new Array(9), cols: new Array(9), blos: new Array(9) };
     var allCells, cellNames;
     var init = function () {
         for (var i = 0; i < 512; i++) {
@@ -49,7 +49,7 @@ var solver = exports;
         NUMS = hashMemo[511];
 
         var gid = 1;
-        for (var gi = 1; gi <= LEN; gi++) {
+        for (var gi = 0; gi < LEN; gi++) {
             groupIds.rows[gi] = gid = gid << 1;
             groupIds.cols[gi] = gid = gid << 1;
             groupIds.blos[gi] = gid = gid << 1;
@@ -66,16 +66,16 @@ var solver = exports;
         }
 
         allCells = [];
-        for (var i = 1; i <= LEN; i++) {
-            for (var j = 1; j <= LEN; j++) {
-                var k = Math.floor((j - 1) / 3) + Math.floor((i - 1) / 3) * 3 + 1;
-                var bo = (j - 1) % 3 + ((i - 1) % 3) * 3;
-                var cellName = cellNames[i - 1][j - 1];
+        for (var i = 0; i < LEN; i++) {
+            for (var j = 0; j < LEN; j++) {
+                var k = Math.floor(j / 3) + Math.floor(i / 3) * 3;
+                var bo = j % 3 + (i % 3) * 3;
+                var cellName = cellNames[i][j];
                 var cell = {
                     key: cellName, i: i, j: j, k: k,
                     idx: [i, j, k],
                     //rohash: 1 << (j - 1), cohash: 1 << (i - 1), bohash: 1 << bo,
-                    //rhash: groupIds.rows[i], chash: groupIds.cols[j], bhash: groupIds.blos[k],
+                    rhash: groupIds.rows[i], chash: groupIds.cols[j], bhash: groupIds.blos[k],
                     ghash: groupIds.rows[i] | groupIds.cols[j] | groupIds.blos[k]
                 };
                 allCells.push(cell);
@@ -103,8 +103,7 @@ var solver = exports;
                 hiddenPair: 0,
                 hiddenTriplet: 0,
                 intersection: 0,
-                strongLinkChain: 0,
-                xyzWing: 0
+                strongLinkChain: 0
             },
             cost: {
                 singleNumberPattern: 0,
@@ -113,8 +112,7 @@ var solver = exports;
                 hiddenPair: 0,
                 hiddenTriplet: 0,
                 intersection: 0,
-                strongLinkChain: 0,
-                xyzWing: 0
+                strongLinkChain: 0
             },
             removeCountPerMs: {
                 singleNumberPattern: 0,
@@ -123,8 +121,7 @@ var solver = exports;
                 hiddenPair: 0,
                 hiddenTriplet: 0,
                 intersection: 0,
-                strongLinkChain: 0,
-                xyzWing: 0
+                strongLinkChain: 0
             }
         };
     };
@@ -144,60 +141,64 @@ var solver = exports;
         f.removeCountPerMs.hiddenTriplet = pf.calcPerMs(f.removeCount.hiddenTriplet, f.cost.hiddenTriplet);
         f.removeCountPerMs.intersection = pf.calcPerMs(f.removeCount.intersection, f.cost.intersection);
         f.removeCountPerMs.strongLinkChain = pf.calcPerMs(f.removeCount.strongLinkChain, f.cost.strongLinkChain);
-        f.removeCountPerMs.xyzWing = pf.calcPerMs(f.removeCount.xyzWing, f.cost.xyzWing);
         return infomations;
     };
 
     var analizeSudoku = function (q) {
         if (!validateQuestion(q)) return { result: false, dup: false, invalid: true, memoMap: getNewMemoMap(), countMemo: null };
-        return solveSudoku(transformQToBit(q), 1, true, null, null, null);
+        return solveSudoku(transformQToBit(q), 1, null, null, null);
     };
 
     var transformQToBit = function (q) {
-        var bq = [];
-        for (var i = 0; i < LEN; i++) {
-            var row = [];
-            for (var j = 0; j < LEN; j++) {
+        var bq = new Array(81);
+        var index = 0;
+        for (var i = 0; i < 9; i++) {
+            for (var j = 0; j < 9; j++) {
                 var num = q[i][j];
                 if (num) {
-                    row.push(1 << (num - 1));
+                    bq[index] = 1 << (num - 1);
                 } else {
-                    row.push(0);
+                    bq[index] = 0;
                 }
+                index++;
             }
-            bq.push(row);
         }
         return bq;
     };
 
-    var solveSudoku = function (q, depth, checkDupSol, memoMap, countMemo, temps) {
+    var solveSudoku = function (q, depth, memoMap, countMemo, temps) {
         infomations.callCount++;
         if (depth > infomations.maxDepth) infomations.maxDepth = depth;
         var useMemoMap = false;
         if (!memoMap) {
             memoMap = getNewMemoMap();
-            countMemo = { rowsMemo: new Array(10), colsMemo: new Array(10), blosMemo: new Array(10) };
+            countMemo = { rows: new Array(9), cols: new Array(9), blos: new Array(9) };
         } else {
             useMemoMap = true;
         }
-
+        var numsLeft = new Array(257); numsLeft[1] = numsLeft[2] = numsLeft[4] = numsLeft[8] = numsLeft[16] = numsLeft[32] = numsLeft[64] = numsLeft[128] = numsLeft[256] = 9;
         var $g = {
-            leftCount: LEN * LEN,
+            leftCount: 81,
             memoMap: memoMap,
-            rows: { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [] },
-            cols: { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [] },
-            blos: { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [] },
-            rowsMemo: { 1: 511, 2: 511, 3: 511, 4: 511, 5: 511, 6: 511, 7: 511, 8: 511, 9: 511 },
-            colsMemo: { 1: 511, 2: 511, 3: 511, 4: 511, 5: 511, 6: 511, 7: 511, 8: 511, 9: 511 },
-            blosMemo: { 1: 511, 2: 511, 3: 511, 4: 511, 5: 511, 6: 511, 7: 511, 8: 511, 9: 511 },
+            rows: [[], [], [], [], [], [], [], [], []],
+            cols: [[], [], [], [], [], [], [], [], []],
+            blos: [[], [], [], [], [], [], [], [], []],
+            rowsMemo: [511, 511, 511, 511, 511, 511, 511, 511, 511],
+            colsMemo: [511, 511, 511, 511, 511, 511, 511, 511, 511],
+            blosMemo: [511, 511, 511, 511, 511, 511, 511, 511, 511],
             countMemo: countMemo,
-            numsLeft: { 1: LEN, 2: LEN, 4: LEN, 8: LEN, 16: LEN, 32: LEN, 64: LEN, 128: LEN, 256: LEN },
+            numsLeft: numsLeft,
             biValueChainQueue: [],
             strongLinkCache: {
-                rows: { 1: 511, 2: 511, 3: 511, 4: 511, 5: 511, 6: 511, 7: 511, 8: 511, 9: 511 },
-                cols: { 1: 511, 2: 511, 3: 511, 4: 511, 5: 511, 6: 511, 7: 511, 8: 511, 9: 511 },
-                blos: { 1: 511, 2: 511, 3: 511, 4: 511, 5: 511, 6: 511, 7: 511, 8: 511, 9: 511 }
-            }
+                rows: [511, 511, 511, 511, 511, 511, 511, 511, 511],
+                cols: [511, 511, 511, 511, 511, 511, 511, 511, 511],
+                blos: [511, 511, 511, 511, 511, 511, 511, 511, 511]
+            },
+            removedNhashForNP: 0,
+            removedGhashForNT: 0,
+            removedGhashForHT: 0,
+            removedGhashForHP: 0,
+            removedGhashForIS: 0
         };
 
         initQuestion(memoMap, $g, useMemoMap);
@@ -206,27 +207,24 @@ var solver = exports;
         var result = { removeCount: 0 };
         var solved = false;
 
-        for (var i = 0; i < LEN; i++) {
-            for (var j = 0; j < LEN; j++) {
-                if (q[i][j]) {
-                    deleteAllCandedatesInitQ($g, $g.memoMap[cellNames[i][j]], q[i][j]);
-                }
+        for (var index = 0; index < 81; index++) {
+            if (q[index]) {
+                deleteAllCandedatesInitQ($g, $g.memoMap[index], q[index]);
             }
         }
 
-        for (var i = 0; i < LEN; i++) {
-            for (var j = 0; j < LEN; j++) {
-                if (q[i][j]) {
-                    var cnds = $g.memoMap[cellNames[i][j]];
-                    if (!cnds.ok) {
-                        var skip = false;
-                        if (depth !== 1) {
-                            for (var ti = 0; ti < temps.length; ti++) {
-                                if (!(skip = temps[ti].cell.key !== cnds.cell.key)) break;
-                            }
+        index = 0;
+        for (var index = 0; index < 81; index++) {
+            if (q[index]) {
+                var cnds = $g.memoMap[index];
+                if (!cnds.ok) {
+                    var skip = false;
+                    if (depth !== 1) {
+                        for (var ti = 0; ti < temps.length; ti++) {
+                            if (!(skip = temps[ti].cell.key !== cnds.cell.key)) break;
                         }
-                        if (!decideCandidates($g, cnds.cell.key, q[i][j], result, skip)) return endAsError(memoMap);
                     }
+                    if (!decideCandidates($g, cnds.cell.key, q[index], result, skip)) return endAsError(memoMap);
                 }
             }
         }
@@ -234,15 +232,15 @@ var solver = exports;
         if (depth > 1) {
             for (var ti = 0; ti < temps.length; ti++) {
                 var cell = temps[ti].cell;
-                for (var ni = 0; ni < LEN; ni++) {
+                for (var ni = 0; ni < 9; ni++) {
                     var num = NUMS[ni];
-                    if (($g.rowsMemo[cell.i] & num) && $g.countMemo.rowsMemo[cell.i][num] === 1) {
+                    if (($g.rowsMemo[cell.i] & num) && $g.countMemo.rows[cell.i][num] === 1) {
                         if (!decideSingleNumberInList($g, $g.rows[cell.i], num, result)) return false;
                     }
-                    if (($g.colsMemo[cell.j] & num) && $g.countMemo.colsMemo[cell.j][num] === 1) {
+                    if (($g.colsMemo[cell.j] & num) && $g.countMemo.cols[cell.j][num] === 1) {
                         if (!decideSingleNumberInList($g, $g.cols[cell.j], num, result)) return false;
                     }
-                    if (($g.blosMemo[cell.k] & num) && $g.countMemo.blosMemo[cell.k][num] === 1) {
+                    if (($g.blosMemo[cell.k] & num) && $g.countMemo.blos[cell.k][num] === 1) {
                         if (!decideSingleNumberInList($g, $g.blos[cell.k], num, result)) return false;
                     }
                 }
@@ -253,7 +251,7 @@ var solver = exports;
         var checkPoint = 0;
         var outerCheckpoint = 0;
         if ($g.leftCount === 0) solved = true;
-        var start = null;
+        var start = 0;
         while (!solved) {
             if ($g.leftCount >= 75) break;
             removeCount = 0;
@@ -267,7 +265,7 @@ var solver = exports;
                 removeCount += result.removeCount;
                 infomations.removeCount.hiddenPair += result.removeCount;
                 if (result.removeCount) outerCheckpoint = checkPoint = 0;
-                else if (++checkPoint >= 5) break;
+                else if (++checkPoint >= 4) break;
                 result.removeCount = 0;
                 if ($g.leftCount === 0) {
                     solved = true;
@@ -280,7 +278,7 @@ var solver = exports;
                 removeCount += result.removeCount;
                 infomations.removeCount.hiddenTriplet += result.removeCount;
                 if (result.removeCount) outerCheckpoint = checkPoint = 0;
-                else if (++checkPoint >= 5) break;
+                else if (++checkPoint >= 4) break;
                 result.removeCount = 0;
                 if ($g.leftCount === 0) {
                     solved = true;
@@ -293,7 +291,7 @@ var solver = exports;
                 removeCount += result.removeCount;
                 infomations.removeCount.intersection += result.removeCount;
                 if (result.removeCount) outerCheckpoint = checkPoint = 0;
-                else if (++checkPoint >= 5) break;
+                else if (++checkPoint >= 4) break;
                 result.removeCount = 0;
                 if ($g.leftCount === 0) {
                     solved = true;
@@ -306,20 +304,7 @@ var solver = exports;
                 removeCount += result.removeCount;
                 infomations.removeCount.nakedTriplet += result.removeCount;
                 if (result.removeCount) outerCheckpoint = checkPoint = 0;
-                else if (++checkPoint >= 5) break;
-                result.removeCount = 0;
-                if ($g.leftCount === 0) {
-                    solved = true;
-                    break;
-                }
-
-                start = pf.start();
-                if (!removeByXyzWing($g, result)) return endAsError(memoMap);
-                infomations.cost.xyzWing += pf.end(start);
-                removeCount += result.removeCount;
-                infomations.removeCount.xyzWing += result.removeCount;
-                if (result.removeCount) outerCheckpoint = checkPoint = 0;
-                else if (++checkPoint >= 5) break;
+                else if (++checkPoint >= 4) break;
                 result.removeCount = 0;
                 if ($g.leftCount === 0) {
                     solved = true;
@@ -383,10 +368,10 @@ var solver = exports;
             var useDoubleTemporary = false;
             if (45 <= $g.leftCount && $g.leftCount <= 64) {
                 var leftCount = 0;
-                var nlist = NUMS;
-                for (var ii = 1; ii <= LEN; ii++)
-                    for (var jj = 0; jj < LEN; jj++)
-                        leftCount += $g.countMemo.rowsMemo[ii][nlist[jj]];
+                var nums = NUMS;
+                for (var ii = 0; ii < 9; ii++)
+                    for (var jj = 0; jj < 9; jj++)
+                        leftCount += $g.countMemo.rows[ii][nums[jj]];
                 useDoubleTemporary = leftCount >= 230;
             }
 
@@ -397,7 +382,7 @@ var solver = exports;
                 var mlCnd1 = null;
                 var mlCnd2 = null;
                 for (var ai = 0, alen = allCells.length; ai < alen; ai++) {
-                    candidates = $g.memoMap[allCells[ai].key];
+                    candidates = $g.memoMap[ai];
                     if (candidates.ok) continue;
                     if (!mlCnd1) {
                         mlCnd1 = candidates;
@@ -408,7 +393,7 @@ var solver = exports;
                         minNum = num;
                         mlCnd2 = mlCnd1;
                         mlCnd1 = candidates;
-                    } else if (num == minNum) {
+                    } else if (num === minNum) {
                         mlCnd2 = candidates;
                     }
                 }
@@ -417,7 +402,7 @@ var solver = exports;
                 var nums2 = hashMemo[mlCnd2.hash];
                 for (var ni1 = 0, nlen1 = nums1.length; ni1 < nlen1; ni1++) {
                     for (var ni2 = 0, nlen2 = nums2.length; ni2 < nlen2; ni2++) {
-                        if (nums1[ni1] == nums2[ni2] && (mlCnd1.cell.ghash & mlCnd2.cell.ghash)) continue;
+                        if (nums1[ni1] === nums2[ni2] && (mlCnd1.cell.ghash & mlCnd2.cell.ghash)) continue;
                         patterns.push([
                             { cell: mlCnd1.cell, num: nums1[ni1] },
                             { cell: mlCnd2.cell, num: nums2[ni2] },
@@ -427,13 +412,13 @@ var solver = exports;
             } else {
                 var mlCnd = null;
                 for (var ai = 0, alen = allCells.length; ai < alen; ai++) {
-                    candidates = $g.memoMap[allCells[ai].key];
+                    candidates = $g.memoMap[ai];
                     if (candidates.ok) continue;
                     var num = candidates.len;
                     if (num < minNum) {
                         minNum = num;
                         mlCnd = candidates;
-                        if (num == 2) break;
+                        if (num === 2) break;
                     }
                 }
                 var nums = hashMemo[mlCnd.hash];
@@ -442,13 +427,10 @@ var solver = exports;
             }
 
             var firstResult = null;
-            for (var pslen = patterns.length, idx = pslen - 1; idx >= 0; idx--) {
-                var pattern = patterns[idx];
+            for (var pslen = patterns.length, index = pslen - 1; index >= 0; index--) {
+                var pattern = patterns[index];
                 var newQ = createQuestionFromMemoMap($g, memoMap, pattern);
-                var q1 = newQ[0];
-                var memoMap1 = newQ[1];
-                var countMemo1 = newQ[2]
-                var result = solveSudoku(q1, depth + 1, checkDupSol, memoMap1, countMemo1, pattern);
+                var result = solveSudoku(newQ[0], depth + 1, newQ[1], newQ[2], pattern);
 
                 if (result.result) {
                     if (result.secondResult) {
@@ -460,7 +442,6 @@ var solver = exports;
                         return firstResult;
                     } else {
                         firstResult = result;
-                        if (!checkDupSol) return firstResult;
                     }
                 }
             }
@@ -473,38 +454,36 @@ var solver = exports;
 
     var initQuestion = function (memoMap, $g, useMemoMap) {
         if (!useMemoMap) {
-            var rowsNumsMemo = $g.countMemo.rowsMemo;
-            var colsNumsMemo = $g.countMemo.colsMemo;
-            var blosNumsMemo = $g.countMemo.blosMemo;
+            var rowsNumsMemo = $g.countMemo.rows;
+            var colsNumsMemo = $g.countMemo.cols;
+            var blosNumsMemo = $g.countMemo.blos;
             var nums = NUMS;
-            for (var listIndex = 1; listIndex <= LEN; listIndex++) {
-                var rowMemo = rowsNumsMemo[listIndex] = new Array(257);
-                var colMemo = colsNumsMemo[listIndex] = new Array(257);
-                var bloMemo = blosNumsMemo[listIndex] = new Array(257);
-
-                for (var ni = 0; ni < LEN; ni++) {
+            for (var gi = 0; gi < 9; gi++) {
+                var rowMemo = rowsNumsMemo[gi] = new Array(257);
+                var colMemo = colsNumsMemo[gi] = new Array(257);
+                var bloMemo = blosNumsMemo[gi] = new Array(257);
+                for (var ni = 0; ni < 9; ni++) {
                     var hash = nums[ni];
-                    rowMemo[hash] = LEN;
-                    colMemo[hash] = LEN;
-                    bloMemo[hash] = LEN;
+                    rowMemo[hash] = 9;
+                    colMemo[hash] = 9;
+                    bloMemo[hash] = 9;
                 }
             }
         }
-
-        for (var cli = 0, len = allCells.length; cli < len; cli++) {
-            var cell = allCells[cli];
-            var candidates = memoMap[cell.key];
-            $g.rows[cell.i].push(candidates);
-            $g.cols[cell.j].push(candidates);
-            $g.blos[cell.k].push(candidates);
+        var cells = allCells;
+        for (var cli = 0; cli < 81; cli++) {
+            var cell = cells[cli];
+            var cnds = memoMap[cli];
+            $g.rows[cell.i].push(cnds);
+            $g.cols[cell.j].push(cnds);
+            $g.blos[cell.k].push(cnds);
         }
     };
 
     var getNewMemoMap = function () {
-        var memoMap = [];
+        var memoMap = new Array(81);
         for (var i = 0, len = allCells.length; i < len; i++) {
-            var cell = allCells[i];
-            memoMap[cell.key] = createCandidates(511, 9, cell);
+            memoMap[i] = createCandidates(511, 9, allCells[i]);
         }
         return memoMap;
     };
@@ -513,78 +492,81 @@ var solver = exports;
         return { hash: hash, len: len, cell: cell, ok: false };
     };
 
-    var deleteAllCandedatesInitQ = function ($g, candidates, decidedNum) {
-        var delHash = candidates.hash - decidedNum;
-        for (var dellNums = hashMemo[delHash], i = 0, len = dellNums.length; i < len; i++) {
-            deleteCandidateInitQ($g, candidates, dellNums[i]);
+    var deleteAllCandedatesInitQ = function ($g, cnds, decidedNum) {
+        for (var dellNums = hashMemo[cnds.hash - decidedNum], i = 0, len = dellNums.length; i < len; i++) {
+            deleteCandidateInitQ($g, cnds, dellNums[i]);
         }
     };
 
-    var deleteCandidateInitQ = function ($g, candidates, deleteNumber) {
-        candidates.hash -= deleteNumber;
-        candidates.len--;
-        $g.countMemo.rowsMemo[candidates.cell.i][deleteNumber]--;
-        $g.countMemo.colsMemo[candidates.cell.j][deleteNumber]--;
-        $g.countMemo.blosMemo[candidates.cell.k][deleteNumber]--;
+    var deleteCandidateInitQ = function ($g, cnds, delNum) {
+        cnds.hash -= delNum;
+        cnds.len--;
+        $g.countMemo.rows[cnds.cell.i][delNum]--;
+        $g.countMemo.cols[cnds.cell.j][delNum]--;
+        $g.countMemo.blos[cnds.cell.k][delNum]--;
+        $g.removedNhashForNP |= delNum;
+        $g.removedGhashForNT |= cnds.cell.ghash;
+        $g.removedGhashForHT |= cnds.cell.ghash;
+        $g.removedGhashForHP |= cnds.cell.ghash;
+        $g.removedGhashForIS |= cnds.cell.ghash;
     };
 
-    var deleteAllCandedates = function ($g, candidates, decidedNum, result) {
-        if (candidates.ok) {
-            if (decidedNum != candidates.hash) return false;
-            return true;
-        }
-        var len = candidates.len;
-        if (len == 1) {
-            return decideCandidates($g, candidates.cell.key, decidedNum, result, false);
-        }
+    var deleteAllCandedates = function ($g, cnds, decidedNum, result) {
+        if (cnds.ok) return decidedNum === cnds.hash;
+        var len = cnds.len;
+        if (len === 1) return decideCandidates($g, cnds.cell.key, decidedNum, result, false);
 
-        var candidatesNums = hashMemo[candidates.hash];
-        for (var idx = 0; idx < len; idx++) {
-            var num = candidatesNums[idx];
-            if ((candidates.hash & num) && decidedNum != num) {
-                if (candidates.ok) break;
-                if (!deleteCandidate($g, candidates, num, result, true)) {
+        var cndsNums = hashMemo[cnds.hash - decidedNum];
+        for (var ni = 0; ni < len; ni++) {
+            var num = cndsNums[ni];
+            if (cnds.hash & num) {
+                if (!deleteCandidate($g, cnds, num, result, true)) {
                     return false;
                 }
+                if (cnds.ok) break;
             }
         }
         return true;
     };
 
-    var deleteCandidate = function ($g, candidates, delNum, result, allDelete) {
+    var deleteCandidate = function ($g, cnds, delNum, result, allDelete) {
         result.removeCount++;
-        candidates.hash -= delNum;
-        candidates.len--;
-        var cell = candidates.cell;
-        var row = $g.countMemo.rowsMemo[cell.i];
-        row[delNum]--;
-        var col = $g.countMemo.colsMemo[cell.j];
-        col[delNum]--;
-        var blo = $g.countMemo.blosMemo[cell.k];
-        blo[delNum]--;
+        cnds.hash -= delNum;
+        cnds.len--;
+        var cell = cnds.cell;
+        var row = $g.countMemo.rows[cell.i];
+        var col = $g.countMemo.cols[cell.j];
+        var blo = $g.countMemo.blos[cell.k];
+        $g.removedNhashForNP |= delNum;
+        $g.removedGhashForNT |= cell.ghash;
+        $g.removedGhashForHT |= cell.ghash;
+        $g.removedGhashForHP |= cell.ghash;
+        $g.removedGhashForIS |= cell.ghash;
 
-        if (row[delNum] === 0 || col[delNum] === 0 || blo[delNum] === 0) return false;
-        if (candidates.hash === 0) return false;
-        if (candidates.len === 1)
-            if (!decideCandidates($g, cell.key, candidates.hash, result, false)) return false;
+        if (--row[delNum] === 0 
+            || --col[delNum] === 0 
+            || --blo[delNum] === 0 
+            || cnds.hash === 0) return false;
+        if (cnds.len === 1)
+            if (!decideCandidates($g, cell.key, cnds.hash, result, false)) return false;
 
-        if (($g.rowsMemo[cell.i] & delNum) && row[delNum] === 1)
+        if (row[delNum] === 1 && ($g.rowsMemo[cell.i] & delNum))
             if (!decideSingleNumberInList($g, $g.rows[cell.i], delNum, result)) return false;
 
-        if (($g.colsMemo[cell.j] & delNum) && col[delNum] === 1)
+        if (col[delNum] === 1 && ($g.colsMemo[cell.j] & delNum))
             if (!decideSingleNumberInList($g, $g.cols[cell.j], delNum, result)) return false;
 
-        if (($g.blosMemo[cell.k] & delNum) && blo[delNum] === 1)
+        if (blo[delNum] === 1 && ($g.blosMemo[cell.k] & delNum))
             if (!decideSingleNumberInList($g, $g.blos[cell.k], delNum, result)) return false;
 
-        if (candidates.len === 2) {
-            $g.biValueChainQueue.push(candidates);
+        if (cnds.len === 2) {
             if (!allDelete) {
-                if (!removeByNakedPairPropagation($g, $g.rows[cell.i], candidates, result)) return false;
-                if (candidates.len === 2)
-                    if (!removeByNakedPairPropagation($g, $g.cols[cell.j], candidates, result)) return false;
-                if (candidates.len === 2)
-                    if (!removeByNakedPairPropagation($g, $g.blos[cell.k], candidates, result)) return false;
+                if (!removeByNakedPairPropagation($g, $g.rows[cell.i], cnds, result)) return false;
+                if (cnds.len === 2)
+                    if (!removeByNakedPairPropagation($g, $g.cols[cell.j], cnds, result)) return false;
+                if (cnds.len === 2)
+                    if (!removeByNakedPairPropagation($g, $g.blos[cell.k], cnds, result)) return false;
+                if (cnds.len === 2) $g.biValueChainQueue.push(cnds);
             }
         }
         return true;
@@ -597,21 +579,18 @@ var solver = exports;
     var decideCandidates = function ($g, key, decidedNum, result, skip) {
         $g.leftCount--;
         $g.numsLeft[decidedNum]--;
-        var candidates = $g.memoMap[key];
-        var cell = candidates.cell;
+        var cnds = $g.memoMap[key];
+        var cell = cnds.cell;
         var row = $g.rows[cell.i];
-        var ri = row.indexOf(candidates);
-        row.splice(ri, 1);
+        row.splice(row.indexOf(cnds), 1);
         var col = $g.cols[cell.j];
-        var ci = col.indexOf(candidates);
-        col.splice(ci, 1);
+        col.splice(col.indexOf(cnds), 1);
         var blo = $g.blos[cell.k];
-        var bi = blo.indexOf(candidates);
-        blo.splice(bi, 1);
+        blo.splice(blo.indexOf(cnds), 1);
         $g.rowsMemo[cell.i] -= decidedNum;
         $g.colsMemo[cell.j] -= decidedNum;
         $g.blosMemo[cell.k] -= decidedNum;
-        candidates.ok = true;
+        cnds.ok = true;
         if (skip) return true;
         return removeCandidatesFromList($g, row, decidedNum, result)
             && removeCandidatesFromList($g, col, decidedNum, result)
@@ -620,10 +599,9 @@ var solver = exports;
 
     var removeCandidatesFromList = function ($g, list, decidedNum, result) {
         for (var li = 0, llen = list.length; li < llen; li++) {
-            var candidates = list[li];
-            if (candidates.hash & decidedNum) {
-                if (!deleteCandidate($g, candidates, decidedNum, result)) return false;
-                if (llen != list.length) {
+            if (list[li].hash & decidedNum) {
+                if (!deleteCandidate($g, list[li], decidedNum, result, false)) return false;
+                if (llen !== list.length && llen !== li + 1) {
                     li = -1;
                     llen = list.length;
                 }
@@ -633,14 +611,9 @@ var solver = exports;
     };
 
     var decideSingleNumberInList = function ($g, list, num, result) {
-        for (var li = 0, llen = list.length; li < llen; li++) {
-            var cnds = list[li];
-            if (cnds.hash & num) {
-                if (!deleteAllCandedates($g, cnds, num, result)) {
-                    return false;
-                }
-                return true;
-            }
+        for (var i = 0, llen = list.length; i < llen; i++) {
+            if (list[i].hash & num)
+                return deleteAllCandedates($g, list[i], num, result);
         }
         return false;
     };
@@ -650,19 +623,16 @@ var solver = exports;
         if (glen <= 2) return true;
         for (var i = 0; i < glen; i++) {
             var tcnds = group[i];
-            if (cnds !== tcnds && cnds.hash === tcnds.hash) {
+            if (cnds.hash === tcnds.hash && cnds !== tcnds) {
                 var nums = hashMemo[cnds.hash];
                 for (var i = 0; i < glen; i++) {
                     var ocnds = group[i];
                     if (ocnds !== tcnds && ocnds !== cnds) {
-                        for (var ni = 0, nlen = nums.length; ni < nlen; ni++) {
-                            if (ocnds.ok) break;
-                            var num = nums[ni];
-                            if (ocnds.hash & num) {
-                                if (!deleteCandidate($g, ocnds, num, result)) return false;
-                            }
-                        }
-                        if (group.length !== glen) {
+                        if (ocnds.hash & nums[0])
+                            if (!deleteCandidate($g, ocnds, nums[0], result, false)) return false;
+                        if (ocnds.hash & nums[1])
+                            if (!deleteCandidate($g, ocnds, nums[1], result, false)) return false;
+                        if (group.length !== glen && glen !== i + 1) {
                             glen = group.length;
                             i = -1;
                         }
@@ -675,10 +645,23 @@ var solver = exports;
     };
 
     var removeByNakedTriplet = function ($g, result) {
-        for (var gi = 1; gi <= LEN; gi++) {
-            if (!removeByNakedTripletSub($g, $g.rows[gi], result)) return false;
-            if (!removeByNakedTripletSub($g, $g.cols[gi], result)) return false;
-            if (!removeByNakedTripletSub($g, $g.blos[gi], result)) return false;
+        var removeCache = 0;
+        for (var gi = 0; gi < 9; gi++) {
+            if ($g.removedGhashForNT & groupIds.rows[gi]) {
+                removeCache = result.removeCount;
+                if (!removeByNakedTripletSub($g, $g.rows[gi], result)) return false;
+                if (removeCache === result.removeCount) $g.removedGhashForNT -= groupIds.rows[gi];
+            }
+            if ($g.removedGhashForNT & groupIds.cols[gi]) {
+                removeCache = result.removeCount;
+                if (!removeByNakedTripletSub($g, $g.cols[gi], result)) return false;
+                if (removeCache === result.removeCount) $g.removedGhashForNT -= groupIds.cols[gi];
+            }
+            if ($g.removedGhashForNT & groupIds.blos[gi]) {
+                removeCache = result.removeCount;
+                if (!removeByNakedTripletSub($g, $g.blos[gi], result)) return false;
+                if (removeCache === result.removeCount) $g.removedGhashForNT -= groupIds.blos[gi];
+            }
         }
         return true;
     }
@@ -687,23 +670,14 @@ var solver = exports;
         var glen = group.length;
         if (glen <= 3) return true;
 
-        var len = 0;
-        for (var i = 0; i < glen; i++) {
-            var cnds = group[i];
-            if (cnds.len <= 3) len++;
-        }
-        if (len <= 2) return true;
-
         for (var i1 = 0; i1 < glen - 2; i1++) {
             var c1 = group[i1];
             if (c1.len > 3) continue;
             for (var i2 = i1 + 1; i2 < glen - 1; i2++) {
                 var c2 = group[i2];
-                if (c2.len > 3) continue;
                 if (hashLengthMemo[(c1.hash | c2.hash)] > 3) continue;
                 for (var i3 = i2 + 1; i3 < glen; i3++) {
                     var c3 = group[i3];
-                    if (c3.len > 3) continue;
                     var nums = hashMemo[(c1.hash | c2.hash | c3.hash)];
                     if (nums.length <= 3) {
                         for (var i = 0; i < glen; i++) {
@@ -711,11 +685,10 @@ var solver = exports;
                             if (cnds !== c1 && cnds !== c2 && cnds !== c3) {
                                 for (var ni = 0, nlen = nums.length; ni < nlen; ni++) {
                                     if (cnds.ok) break;
-                                    var num = nums[ni];
-                                    if (!(cnds.hash & num)) continue;
-                                    if (!deleteCandidate($g, cnds, num, result)) return false;
+                                    if (cnds.hash & nums[ni])
+                                        if (!deleteCandidate($g, cnds, nums[ni], result, false)) return false;
                                 }
-                                if (group.length !== glen) {
+                                if (group.length !== glen && glen !== i + 1) {
                                     glen = group.length;
                                     i = -1;
                                 }
@@ -730,19 +703,26 @@ var solver = exports;
     };
 
     var removeBySingleNumberPattern = function ($g, result) {
-        for (var idx = 0; idx < LEN; idx++) {
-            var num = 1 << idx;
-            if (!removeBySingleNumberPatternSub($g, num, result)) return false;
+        for (var i = 0; i < 9; i++) {
+            var num = 1 << i;
+            if ($g.removedNhashForNP & num) {
+                var removeCountCache = result.removeCount;
+                if (!removeBySingleNumberPatternSub($g, num, result)) return false;
+                if (removeCountCache == result.removeCount) {
+                    $g.removedNhashForNP -= num;
+                }
+
+            }
         }
         return true;
     };
 
     var removeBySingleNumberPatternSub = function ($g, num, result) {
-        if ($g.numsLeft[num] < 2 || $g.numsLeft[num] == 9) return true;
+        if ($g.numsLeft[num] < 2 || $g.numsLeft[num] === 9) return true;
         var numberLeftCells = [];
         var numberLeftBlos = [];
         var bKeys = [];
-        for (var k = 1; k <= LEN; k++) {
+        for (var k = 0; k < 9; k++) {
             if ($g.blosMemo[k] & num) {
                 var blo = $g.blos[k];
                 var bloCandidates = [];
@@ -761,18 +741,21 @@ var solver = exports;
         var blen = bKeys.length;
         var indexes = getAllZeroArray(blen);
         var currrentBkey = 0;
-        var firstBlosLen = numberLeftBlos[0].length;
+        var firstBlosLenM1 = numberLeftBlos[0].length - 1;
         var firstBkey = bKeys[0];
         var ghashHistory = [];
         for (var li = 0, len = numberLeftCells.length; li < len; li++) {
             var target = numberLeftCells[li];
             if (!(target.hash & num)) continue;
+            if (target.ok) continue;
             setArrayAllZero(indexes, blen);
             currrentBkey = target.cell.k;
             var occupiedGroups = target.cell.ghash;
-            var foundPattern = true;
-            for (var bKeyIndex = 0; bKeyIndex < blen; bKeyIndex++) {
-                if (currrentBkey === bKeys[bKeyIndex]) continue;
+            for (var bKeyIndex = 0; bKeyIndex < blen;) {
+                if (currrentBkey === bKeys[bKeyIndex]) {
+                    bKeyIndex++;
+                    continue;
+                }
                 var foundCandidate = false;
                 var bloCells = numberLeftBlos[bKeyIndex];
                 for (var len = bloCells.length; indexes[bKeyIndex] < len; indexes[bKeyIndex]++) {
@@ -785,32 +768,28 @@ var solver = exports;
                     }
                 }
                 if (foundCandidate) {
+                    bKeyIndex++;
                     continue;
                 } else {
                     if (bKeyIndex === 0 ||
-                        (bKeyIndex === 1 && (indexes[0] + 1 >= firstBlosLen || currrentBkey === firstBkey))) {
-                        foundPattern = false;
-                        break;
+                        (bKeyIndex === 1 && (indexes[0] >= firstBlosLenM1 || currrentBkey === firstBkey))) {
+                        if (deleteCandidate($g, target, num, result, false)) break;
+                        else return false;
                     }
                     indexes[bKeyIndex] = 0;
                     occupiedGroups = ghashHistory.pop();
-                    if (currrentBkey === bKeys[bKeyIndex - 1]) bKeyIndex--;
-                    bKeyIndex -= 2;
-                    indexes[bKeyIndex + 1]++;
+                    bKeyIndex--;
+                    if (currrentBkey === bKeys[bKeyIndex]) bKeyIndex--;
+                    indexes[bKeyIndex]++;
                 }
-            }
-
-            if (foundPattern) {
-            } else {
-                if (!deleteCandidate($g, target, num, result)) return false;
             }
         }
         return true;
     };
 
     var getAllZeroArray = function (len) {
-        var array = [];
-        for (var i = 0; i < len; i++) array.push(0);
+        var array = new Array(len);
+        for (var i = 0; i < len; i++) array[i] = 0;
         return array;
     };
 
@@ -823,92 +802,75 @@ var solver = exports;
             var cnds = $g.biValueChainQueue.pop();
             if (cnds.ok) continue;
             var bival = hashMemo[cnds.hash];
-            var first = getChainResult($g, cnds, cnds, bival[0], bival[1]);
-            var second = getChainResult($g, cnds, cnds, bival[1], bival[0]);
-            if (!removeByChainResult($g, first, second, result)) return false;
+            if (!removeByChainResult($g,
+                getChainResult($g, cnds, cnds, bival[0], bival[1]),
+                getChainResult($g, cnds, cnds, bival[1], bival[0]), result)) return false;
         }
         return true;
     };
 
     var removeByChainResult = function ($g, first, second, result) {
         if (first.err && second.err) return false;
-        var trueResult = null;
         if (first.err) {
-            trueResult = second;
+            return removeByTrueResult($g, second, result);
         } else if (second.err) {
-            trueResult = first;
+            return removeByTrueResult($g, first, result);
+        } else {
+            return removeByChainResultSub($g, first, second, result);
         }
+    };
 
-        if (trueResult) {
-            var trkeys = trueResult.onKeysList;
-            for (var trki = 0, trklen = trkeys.length; trki < trklen; trki++) {
-                var trkey = trkeys[trki];
-                var candidates = $g.memoMap[trkey];
-                if (!deleteAllCandedates($g, candidates, trueResult.onKeys[trkey], result)) return false;
-            }
-            return true;
+    var removeByTrueResult = function ($g, trueResult, result) {
+        var keys = trueResult.onKeysList;
+        for (var i = 0, len = keys.length; i < len; i++) {
+            if (!deleteAllCandedates($g, $g.memoMap[keys[i]], trueResult.onKeys[keys[i]], result)) return false;
         }
+        return true;
+    }
 
+    var removeByChainResultSub = function ($g, first, second, result) {
         var fkeys = first.onKeysList;
-        var skeys = second.onKeysList;
         for (var fi = 0, flen = fkeys.length; fi < flen; fi++) {
             var fkey = fkeys[fi];
-            var candidates = $g.memoMap[fkey];
-            for (var si = 0, slen = skeys.length; si < slen; si++) {
-                var skey = skeys[si];
-                if (fkey == skey) {
-                    if (first.onKeys[fkey] == second.onKeys[skey])
-                        if (!deleteAllCandedates($g, candidates, first.onKeys[fkey], result)) return false;
-                    break;
-                }
-            }
+            if (first.onKeys[fkey] === second.onKeys[fkey])
+                if (!deleteAllCandedates($g, $g.memoMap[fkey], first.onKeys[fkey], result)) return false;
         }
 
         var fkeys = first.offKeysList;
-        var skeys = second.offKeysList;
+        var offNumHash = 0;
         for (var fi = 0, flen = fkeys.length; fi < flen; fi++) {
             var fkey = fkeys[fi];
-            var candidates = $g.memoMap[fkey];
-            for (var si = 0, slen = skeys.length; si < slen; si++) {
-                var skey = skeys[si];
-                var offNumHash;
-                if (fkey == skey) {
-                    if ((offNumHash = first.offKeys[fkey] & second.offKeys[skey])) {
-                        for (var offi = 0, nums = hashMemo[offNumHash], nlen = nums.length; offi < nlen; offi++) {
-                            var num = nums[offi];
-                            if (candidates.hash & num) {
-                                if (!deleteCandidate($g, candidates, num, result)) return false;
-                            }
-                        }
+            if ((offNumHash = first.offKeys[fkey] & second.offKeys[fkey])) {
+                var cnds = $g.memoMap[fkey];
+                for (var ni = 0, nums = hashMemo[cnds.hash & offNumHash], nlen = nums.length; ni < nlen; ni++) {
+                    if (cnds.hash & nums[ni]) {
+                        if (!deleteCandidate($g, cnds, nums[ni], result, false)) return false;
                     }
-                    break;
                 }
             }
+
         }
         return true;
-    };
+    }
 
     var getNumsRecords;
     var getOffNumsRecord;
     (function () {
-        var numsRecords = {};
+        var numsRecords = new Array(257);
         var offNumsRecord = {
-            rows: {},
-            cols: {},
-            blos: {}
-        };
-        var getNumsMemo = function () {
-            return new Array(257);
+            rows: new Array(9),
+            cols: new Array(9),
+            blos: new Array(9)
         };
 
-        for (var gi = 1; gi <= LEN; gi++) {
-            offNumsRecord.rows[gi] = getNumsMemo();
-            offNumsRecord.cols[gi] = getNumsMemo();
-            offNumsRecord.blos[gi] = getNumsMemo();
+        for (var gi = 0; gi < 9; gi++) {
+            offNumsRecord.rows[gi] = new Array(257);
+            offNumsRecord.cols[gi] = new Array(257);
+            offNumsRecord.blos[gi] = new Array(257);
         }
         getOffNumsRecord = function () {
-            for (var gi = 1; gi <= LEN; gi++) {
-                for (var ni = 0, nums = NUMS, nlen = LEN; ni < nlen; ni++) {
+            for (var gi = 0; gi < 9; gi++) {
+                for (var ni = 0, nums = NUMS; ni < 9; ni++) {
                     var num = nums[ni];
                     offNumsRecord.rows[gi][num] = 0;
                     offNumsRecord.cols[gi][num] = 0;
@@ -918,7 +880,7 @@ var solver = exports;
             return offNumsRecord;
         };
         getNumsRecords = function () {
-            for (var ni = 0, nums = NUMS, nlen = LEN; ni < nlen; ni++) {
+            for (var ni = 0, nums = NUMS; ni < 9; ni++) {
                 var num = nums[ni];
                 numsRecords[num] = 0;
                 numsRecords[num] = 0;
@@ -993,19 +955,19 @@ var solver = exports;
 
         var i = cnds.cell.i;
         N.rows[i][offNum]++;
-        if ($g.countMemo.rowsMemo[i][offNum] - N.rows[i][offNum] === 1) {
+        if ($g.countMemo.rows[i][offNum] - N.rows[i][offNum] === 1) {
             if (!addChainResultOffGroups($g, $g.rows[i], offNum, chainResult)) return false;
         }
 
         var j = cnds.cell.j;
         N.cols[j][offNum]++;
-        if ($g.countMemo.colsMemo[j][offNum] - N.cols[j][offNum] === 1) {
+        if ($g.countMemo.cols[j][offNum] - N.cols[j][offNum] === 1) {
             if (!addChainResultOffGroups($g, $g.cols[j], offNum, chainResult)) return false;
         }
 
         var k = cnds.cell.k;
         N.blos[k][offNum]++;
-        if ($g.countMemo.blosMemo[k][offNum] - N.blos[k][offNum] === 1) {
+        if ($g.countMemo.blos[k][offNum] - N.blos[k][offNum] === 1) {
             if (!addChainResultOffGroups($g, $g.blos[k], offNum, chainResult)) return false;
         }
 
@@ -1033,18 +995,31 @@ var solver = exports;
     };
 
     var addChainResult = function (chainResult, cell, num) {
-        chainResult.onKeys[cell.key] = num;
-        chainResult.onKeysList.push(cell.key);
         if (chainResult.numsRecords[num] & cell.ghash) return false;
         chainResult.numsRecords[num] |= cell.ghash;
+        chainResult.onKeys[cell.key] = num;
+        chainResult.onKeysList.push(cell.key);
         return true;
     };
 
     var removeByHiddenPair = function ($g, result) {
-        for (var gi = 1; gi <= LEN; gi++) {
-            if (!removeByHiddenPairSub($g, $g.rows[gi], $g.countMemo.rowsMemo[gi], result)) return false;
-            if (!removeByHiddenPairSub($g, $g.cols[gi], $g.countMemo.colsMemo[gi], result)) return false;
-            if (!removeByHiddenPairSub($g, $g.blos[gi], $g.countMemo.blosMemo[gi], result)) return false;
+        var removeCache = 0;
+        for (var gi = 0; gi < 9; gi++) {
+            if ($g.removedGhashForHP & groupIds.rows[gi]) {
+                removeCache = result.removeCount;
+                if (!removeByHiddenPairSub($g, $g.rows[gi], $g.countMemo.rows[gi], result)) return false;
+                if (removeCache === result.removeCount) $g.removedGhashForHP -= groupIds.rows[gi];
+            }
+            if ($g.removedGhashForHP & groupIds.cols[gi]) {
+                removeCache = result.removeCount;
+                if (!removeByHiddenPairSub($g, $g.cols[gi], $g.countMemo.cols[gi], result)) return false;
+                if (removeCache === result.removeCount) $g.removedGhashForHP -= groupIds.cols[gi];
+            }
+            if ($g.removedGhashForHP & groupIds.blos[gi]) {
+                removeCache = result.removeCount;
+                if (!removeByHiddenPairSub($g, $g.blos[gi], $g.countMemo.blos[gi], result)) return false;
+                if (removeCache === result.removeCount) $g.removedGhashForHP -= groupIds.blos[gi];
+            }
         }
         return true;
     }
@@ -1053,9 +1028,9 @@ var solver = exports;
         var glen = group.length;
         if (glen <= 2) return true;
         var pairNumsCollectionHash = 0;
-        for (var ni = 0, nums = NUMS, nlen = LEN; ni < nlen; ni++) {
-            var num = nums[ni];
-            if (numsMemo[num] == 2) pairNumsCollectionHash += num;
+        var num = 0;
+        for (var ni = 0, nums = NUMS; ni < 9; ni++) {
+            if (numsMemo[num = nums[ni]] === 2) pairNumsCollectionHash += num;
         }
         var pnclen = hashLengthMemo[pairNumsCollectionHash];
         if (pnclen < 2) return true;
@@ -1063,8 +1038,7 @@ var solver = exports;
         for (var n1i = 0, n1len = pnclen - 1; n1i < n1len; n1i++) {
             var n1 = pairNums[n1i];
             for (var n2i = n1i + 1; n2i < pnclen; n2i++) {
-                var n2 = pairNums[n2i];
-                var pairNumsHash = n1 + n2;
+                var pairNumsHash = n1 + pairNums[n2i];
                 var fcnds = null;
                 var scnds = null;
                 for (var i = 0; i < glen; i++) {
@@ -1079,18 +1053,16 @@ var solver = exports;
                     }
                 }
                 if (!scnds) continue;
-                var fDelNums = hashMemo[fcnds.hash - pairNumsHash];
-                for (var i = 0, len = fDelNums.length; i < len; i++) {
-                    var delNum = fDelNums[i];
-                    if (fcnds.hash & delNum) {
-                        if (!deleteCandidate($g, fcnds, delNum, result)) return false;
+                var delNums = hashMemo[fcnds.hash - pairNumsHash];
+                for (var i = 0, len = delNums.length; i < len; i++) {
+                    if (fcnds.hash & delNums[i]) {
+                        if (!deleteCandidate($g, fcnds, delNums[i], result, false)) return false;
                     }
                 }
-                var sDelNums = hashMemo[scnds.hash - (scnds.hash & pairNumsHash)];
-                for (var i = 0, len = sDelNums.length; i < len; i++) {
-                    var delNum = sDelNums[i];
-                    if (scnds.hash & delNum) {
-                        if (!deleteCandidate($g, scnds, delNum, result)) return false;
+                delNums = hashMemo[scnds.hash - (scnds.hash & pairNumsHash)];
+                for (i = 0, len = delNums.length; i < len; i++) {
+                    if (scnds.hash & delNums[i]) {
+                        if (!deleteCandidate($g, scnds, delNums[i], result, false)) return false;
                     }
                 }
                 return true;
@@ -1100,10 +1072,23 @@ var solver = exports;
     };
 
     var removeByHiddenTriplet = function ($g, result) {
-        for (var gi = 1; gi <= LEN; gi++) {
-            if (!removeByHiddenTripletSub($g, $g.rows[gi], $g.countMemo.rowsMemo[gi], result)) return false;
-            if (!removeByHiddenTripletSub($g, $g.cols[gi], $g.countMemo.colsMemo[gi], result)) return false;
-            if (!removeByHiddenTripletSub($g, $g.blos[gi], $g.countMemo.blosMemo[gi], result)) return false;
+        var removeCache = 0;
+        for (var gi = 0; gi < 9; gi++) {
+            if ($g.removedGhashForHT & groupIds.rows[gi]) {
+                removeCache = result.removeCount;
+                if (!removeByHiddenTripletSub($g, $g.rows[gi], $g.countMemo.rows[gi], result)) return false;
+                if (removeCache === result.removeCount) $g.removedGhashForHT -= groupIds.rows[gi];
+            }
+            if ($g.removedGhashForHT & groupIds.cols[gi]) {
+                removeCache = result.removeCount;
+                if (!removeByHiddenTripletSub($g, $g.cols[gi], $g.countMemo.cols[gi], result)) return false;
+                if (removeCache === result.removeCount) $g.removedGhashForHT -= groupIds.cols[gi];
+            }
+            if ($g.removedGhashForHT & groupIds.blos[gi]) {
+                removeCache = result.removeCount;
+                if (!removeByHiddenTripletSub($g, $g.blos[gi], $g.countMemo.blos[gi], result)) return false;
+                if (removeCache === result.removeCount) $g.removedGhashForHT -= groupIds.blos[gi];
+            }
         }
         return true;
     }
@@ -1112,7 +1097,7 @@ var solver = exports;
         var glen = group.length;
         if (glen <= 3) return true;
         var triNumsCollectionHash = 0;
-        for (var ni = 0, nums = NUMS, nlen = LEN; ni < nlen; ni++) {
+        for (var ni = 0, nums = NUMS; ni < 9; ni++) {
             var num = nums[ni];
             if (numsMemo[num] === 2 || numsMemo[num] === 3) triNumsCollectionHash += num;
         }
@@ -1124,8 +1109,7 @@ var solver = exports;
             for (var n2i = n1i + 1; n2i < tnclen - 1; n2i++) {
                 var n2 = triNums[n2i];
                 for (var n3i = n2i + 1; n3i < tnclen; n3i++) {
-                    var n3 = triNums[n3i];
-                    var triNumsHash = n1 + n2 + n3;
+                    var triNumsHash = n1 + n2 + triNums[n3i];
                     var fcnds = null;
                     var scnds = null;
                     var tcnds = null;
@@ -1144,28 +1128,19 @@ var solver = exports;
                             }
                         }
                     }
-                    if (!tcnds) continue;
-                    var fDelNums = hashMemo[fcnds.hash - (fcnds.hash & triNumsHash)];
-                    for (var i = 0, len = fDelNums.length; i < len; i++) {
-                        var delNum = fDelNums[i];
-                        if (fcnds.hash & delNum) {
-                            if (!deleteCandidate($g, fcnds, delNum, result)) return false;
-                        }
-                    }
-                    var sDelNums = hashMemo[scnds.hash - (scnds.hash & triNumsHash)];
-                    for (var i = 0, len = sDelNums.length; i < len; i++) {
-                        var delNum = sDelNums[i];
-                        if (scnds.hash & delNum) {
-                            if (!deleteCandidate($g, scnds, delNum, result)) return false;
-                        }
-                    }
-                    var tDelNums = hashMemo[tcnds.hash - (tcnds.hash & triNumsHash)];
-                    for (var i = 0, len = tDelNums.length; i < len; i++) {
-                        var delNum = tDelNums[i];
-                        if (tcnds.hash & delNum) {
-                            if (!deleteCandidate($g, tcnds, delNum, result)) return false;
-                        }
-                    }
+                    if (tcnds === null) continue;
+                    var delNums = hashMemo[fcnds.hash - (fcnds.hash & triNumsHash)];
+                    for (var i = 0, len = delNums.length; i < len; i++)
+                        if (fcnds.hash & delNums[i])
+                            if (!deleteCandidate($g, fcnds, delNums[i], result, false)) return false;
+                    delNums = hashMemo[scnds.hash - (scnds.hash & triNumsHash)];
+                    for (i = 0, len = delNums.length; i < len; i++)
+                        if (scnds.hash & delNums[i])
+                            if (!deleteCandidate($g, scnds, delNums[i], result, false)) return false;
+                    delNums = hashMemo[tcnds.hash - (tcnds.hash & triNumsHash)];
+                    for (i = 0, len = delNums.length; i < len; i++)
+                        if (tcnds.hash & delNums[i])
+                            if (!deleteCandidate($g, tcnds, delNums[i], result, false)) return false;
                     return true;
                 }
             }
@@ -1175,24 +1150,36 @@ var solver = exports;
 
     var flipped = true;
     var removeByIntersection = function ($g, result) {
-        var nums = NUMS, nlen = LEN;
+        var nums = NUMS;
         var cm = $g.countMemo;
-        for (var gi = 1; gi <= LEN; gi++) {
-            var rowsMemo = cm.rowsMemo[gi];
-            var colsMemo = cm.colsMemo[gi];
-            var blosMemo = cm.blosMemo[gi];
-            for (var ni = 0; ni < nlen; ni++) {
-                var num = nums[ni];
-                if (flipped) {
-                    if (rowsMemo[num] == 2 || rowsMemo[num] == 3)
-                        if (!removeByIntersectionSub($g, $g.rows[gi], gi, 0, 2, num, rowsMemo[num], $g.blos, cm.blosMemo, result)) return false;
-                    if (colsMemo[num] == 2 || colsMemo[num] == 3)
-                        if (!removeByIntersectionSub($g, $g.cols[gi], gi, 1, 2, num, colsMemo[num], $g.blos, cm.blosMemo, result)) return false;
-                } else {
-                    if (blosMemo[num] == 2 || blosMemo[num] == 3)
-                        if (!removeByIntersectionSub($g, $g.blos[gi], gi, 2, 0, num, blosMemo[num], $g.rows, cm.rowsMemo, result)) return false;
-                    if (blosMemo[num] == 2 || blosMemo[num] == 3)
-                        if (!removeByIntersectionSub($g, $g.blos[gi], gi, 2, 1, num, blosMemo[num], $g.cols, cm.colsMemo, result)) return false;
+        var removeCache = 0;
+        for (var gi = 0; gi < 9; gi++) {
+            var rowsMemo = cm.rows[gi];
+            var colsMemo = cm.cols[gi];
+            var blosMemo = cm.blos[gi];
+            if (flipped) {
+                if ($g.removedGhashForIS & groupIds.rows[gi]) {
+                    removeCache = result.removeCount;
+                    for (var ni = 0; ni < 9; ni++) {
+                        var num = nums[ni];
+                        if (rowsMemo[num] === 2 || rowsMemo[num] === 3)
+                            if (!removeByIntersectionSub($g, $g.rows[gi], gi, 0, 2, num, rowsMemo[num], $g.blos, cm.blos, result)) return false;
+                        if (colsMemo[num] === 2 || colsMemo[num] === 3)
+                            if (!removeByIntersectionSub($g, $g.cols[gi], gi, 1, 2, num, colsMemo[num], $g.blos, cm.blos, result)) return false;
+                    }
+                    if (removeCache === result.removeCount) $g.removedGhashForIS -= groupIds.rows[gi];
+                }
+            } else {
+                if ($g.removedGhashForIS & groupIds.blos[gi]) {
+                    removeCache = result.removeCount;
+                    for (var ni = 0; ni < 9; ni++) {
+                        var num = nums[ni];
+                        if (blosMemo[num] === 2 || blosMemo[num] === 3)
+                            if (!removeByIntersectionSub($g, $g.blos[gi], gi, 2, 0, num, blosMemo[num], $g.rows, cm.rows, result)) return false;
+                        if (blosMemo[num] === 2 || blosMemo[num] === 3)
+                            if (!removeByIntersectionSub($g, $g.blos[gi], gi, 2, 1, num, blosMemo[num], $g.cols, cm.cols, result)) return false;
+                    }
+                    if (removeCache === result.removeCount) $g.removedGhashForIS -= groupIds.blos[gi];
                 }
             }
         }
@@ -1201,29 +1188,29 @@ var solver = exports;
     };
 
     var removeByIntersectionSub = function ($g, group, gi, gKey, tgKey, num, numCount, tGroups, tGroupMemo, result) {
-        var tgi = 0;
+        var tgi = undefined;
         var count = 0;
         for (var i = 0, glen = group.length; i < glen; i++) {
             var cnds = group[i];
             if (cnds.hash & num) {
                 count++;
-                if (tgi) {
-                    if (tgi !== cnds.cell.idx[tgKey]) return true;
-                } else {
+                if (tgi === undefined) {
                     tgi = cnds.cell.idx[tgKey];
                     if (tGroupMemo[tgi][num] === numCount) return true;
+                } else {
+                    if (tgi !== cnds.cell.idx[tgKey]) return true;
                 }
                 if (count === numCount) break;
             }
         }
-        if (!tgi) return false;
+        if (tgi === undefined) return false;
 
         var tGroup = tGroups[tgi];
         for (var i = 0, tglen = tGroup.length; i < tglen; i++) {
             var cnds = tGroup[i];
-            if (cnds.cell.idx[gKey] != gi && (cnds.hash & num)) {
-                if (!deleteCandidate($g, cnds, num, result)) return false;
-                if (tglen != tGroup.length) {
+            if (cnds.cell.idx[gKey] !== gi && (cnds.hash & num)) {
+                if (!deleteCandidate($g, cnds, num, result, false)) return false;
+                if (tglen !== tGroup.length && i !== tglen - 1) {
                     i = -1;
                     tglen = tGroup.length;
                 }
@@ -1232,32 +1219,37 @@ var solver = exports;
         return true;
     };
 
+    var slcFlip = false;
     var removeByStrongLinkChain = function ($g, result) {
         var nums = NUMS;
-        var nlen = LEN;
-        for (var gi = 1; gi <= LEN; gi++) {
-            var rowMemo = $g.countMemo.rowsMemo[gi];
-            for (var ni = 0; ni < nlen; ni++) {
-                var num = nums[ni];
-                if (rowMemo[num] == 2 && ($g.strongLinkCache.rows[gi] & num)) {
-                    if (!removeByStrongLinkChainSub($g, $g.rows[gi], num, result)) return false;
-                    $g.strongLinkCache.rows[gi] -= num;
+        slcFlip = !slcFlip;
+        if (slcFlip) {
+            for (var gi = 0; gi < 9; gi++) {
+                var rowMemo = $g.countMemo.rows[gi];
+                for (var ni = 0; ni < 9; ni++) {
+                    var num = nums[ni];
+                    if (rowMemo[num] === 2 && ($g.strongLinkCache.rows[gi] & num)) {
+                        if (!removeByStrongLinkChainSub($g, $g.rows[gi], num, result)) return false;
+                        $g.strongLinkCache.rows[gi] -= num;
+                    }
+                }
+            }
+        } else {
+            for (var gi = 0; gi < 9; gi++) {
+                var colMemo = $g.countMemo.cols[gi];
+                for (var ni = 0; ni < 9; ni++) {
+                    var num = nums[ni];
+                    if (colMemo[num] === 2 && ($g.strongLinkCache.cols[gi] & num)) {
+                        if (!removeByStrongLinkChainSub($g, $g.cols[gi], num, result)) return false;
+                        $g.strongLinkCache.cols[gi] -= num;
+                    }
                 }
             }
         }
-        //for (var gi = 1; gi <= LEN; gi++) {
-        //    var colMemo = $g.countMemo.colsMemo[gi];
-        //    for (var ni = 0; ni < nlen; ni++) {
-        //        var num = nums[ni];
-        //        if (colMemo[num] == 2 && ($g.strongLinkCache.cols[gi] & num)) {
-        //            if (!removeByStrongLinkChainSub($g, $g.cols[gi], num, result)) return false;
-        //            $g.strongLinkCache.cols[gi] -= num;
-        //        }
-        //    }
-        //}
-        //for (var gi = 1; gi <= LEN; gi++) {
-        //    var bloMemo = $g.countMemo.blosMemo[gi];
-        //    for (var ni = 0; ni < nlen; ni++) {
+
+        //for (var gi = 0; gi < 9; gi++) {
+        //    var bloMemo = $g.countMemo.blos[gi];
+        //    for (var ni = 0; ni < 9; ni++) {
         //        var num = nums[ni];
         //        if (bloMemo[num] == 2 && ($g.strongLinkCache.blos[gi] & num)) {
         //            if (!removeByStrongLinkChainSub($g, $g.blos[gi], num, result)) return false;
@@ -1283,113 +1275,22 @@ var solver = exports;
             }
         }
         if (!scnds) return false;
-        if (fcnds.len == 2 || scnds.len == 2) return true;
-
-        var first = getChainResult($g, fcnds, scnds, num, num);
-        var second = getChainResult($g, scnds, fcnds, num, num);
-        if (!removeByChainResult($g, first, second, result)) return false;
-        return true
-    };
-
-    var removeByXyzWing = function ($g, result) {
-        for (var bi = 1; bi <= LEN; bi++) {
-            var blo = $g.blos[bi];
-            for (var i2 = 0, blen = blo.length; i2 < blen; i2++) {
-                var cnds2 = blo[i2];
-                if (cnds2.len !== 2) continue;
-                for (var i3 = 0; i3 < blen; i3++) {
-                    var cnds3 = blo[i3];
-                    if (cnds3.len != 3) continue;
-                    if (cnds2.hash == (cnds3.hash & cnds2.hash)) {
-                        if (!removeByXyzWingSub($g, blo, bi, cnds2, cnds3, result)) return false;
-                        if (blen != blo.length) {
-                            blen = blo.length;
-                            i2 = -1;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        return true;
-    };
-
-    var removeByXyzWingSub = function ($g, blo, bi, cnds2, cnds3, result) {
-        var delNums = hashMemo[cnds2.hash];
-        var delNum1 = delNums[0];
-        var delNum2 = delNums[1];
-        var targetHash1 = 0;
-        var targetHash2 = 0;
-        if ($g.countMemo.blosMemo[bi][delNum1] > 2) targetHash1 = cnds3.hash - delNum2;
-        if ($g.countMemo.blosMemo[bi][delNum2] > 2) targetHash2 = cnds3.hash - delNum1;
-        if (targetHash1 == 0 && targetHash2 == 0) return true;
-
-        if (cnds2.cell.i !== cnds3.cell.i) {
-            var row = $g.rows[cnds3.cell.i];
-            for (var i = 0, len = row.length; i < len; i++) {
-                var cnds = row[i];
-                if (cnds.cell.k == bi) continue;
-                if (cnds.hash == targetHash1 || cnds.hash == targetHash2) {
-                    var delNum = cnds2.hash & cnds.hash;
-                    var deleted = false;
-                    for (var i2 = 0, len2 = blo.length; i2 < len2; i2++) {
-                        var tcnds = blo[i2];
-                        if (tcnds != cnds2 && tcnds != cnds3
-                            && tcnds.cell.i == cnds3.cell.i
-                            && (tcnds.hash & delNum)) {
-                            if (!deleteCandidate($g, tcnds, delNum, result)) return false;
-                            deleted = true;
-                            if (len2 != blo.length) {
-                                i2 = -1;
-                                len2 = blo.length;
-                            }
-                        }
-                    }
-                    if (deleted) {
-                        if (cnds2.ok || cnds3.len != 3) return true;
-                        break;
-                    }
-                }
-            }
-        }
-        if (cnds2.cell.j !== cnds3.cell.j) {
-            var col = $g.cols[cnds3.cell.j];
-            for (var i = 0, len = col.length; i < len; i++) {
-                var cnds = col[i];
-                if (cnds.cell.k == bi) continue;
-                if (cnds.hash == targetHash1 || cnds.hash == targetHash2) {
-                    var delNum = cnds2.hash & cnds.hash;
-                    var deleted = false;
-                    for (var i2 = 0, len2 = blo.length; i2 < len2; i2++) {
-                        var tcnds = blo[i2];
-                        if (tcnds != cnds2 && tcnds != cnds3
-                            && tcnds.cell.j == cnds3.cell.j
-                            && (tcnds.hash & delNum)) {
-                            if (!deleteCandidate($g, tcnds, delNum, result)) return false;
-                            deleted = true;
-                            if (len2 != blo.length) {
-                                i2 = -1;
-                                len2 = blo.length;
-                            }
-                        }
-                    }
-                    if (deleted) return true;
-                }
-            }
-        }
-        return true;
+        if (fcnds.len === 2 || scnds.len === 2) return true;
+        return removeByChainResult($g,
+            getChainResult($g, fcnds, scnds, num, num),
+            getChainResult($g, scnds, fcnds, num, num), result);
     };
 
     var validateMemoMap;
     (function () {
-        var _rows = new Array(10);
-        var _cols = new Array(10);
-        var _blos = new Array(10);
+        var _rows = new Array(9);
+        var _cols = new Array(9);
+        var _blos = new Array(9);
         validateMemoMap = function (memoMap) {
             var rows = _rows;
             var cols = _cols;
             var blos = _blos;
-            for (var gi = 1; gi <= LEN; gi++) {
+            for (var gi = 0; gi < 9; gi++) {
                 rows[gi] = 0;
                 cols[gi] = 0;
                 blos[gi] = 0;
@@ -1399,7 +1300,7 @@ var solver = exports;
                 var cell = allCells[cli];
 
                 var candidates = memoMap[cell.key];
-                if (candidates.len != 1) return false;
+                if (candidates.len !== 1) return false;
                 var value = candidates.hash;
 
                 if (rows[cell.i] & value) return false;
@@ -1416,97 +1317,106 @@ var solver = exports;
     })();
 
 
+    var validateQuestion;
+    (function () {
+        var _rows = new Array(9);
+        var _cols = new Array(9);
+        var _blos = new Array(9);
 
-    var validateQuestion = function (q) {
-        var rows = new Array(LEN);
-        var cols = new Array(LEN);
-        var blos = new Array(LEN);
-        for (var cli = 0, len = allCells.length; cli < len; cli++) {
-            var cell = allCells[cli];
-            var i = cell.i - 1;
-            var j = cell.j - 1;
-            var k = cell.k - 1;
-            var num;
-            if (!(num = q[i][j])) return true;
-            var row = rows[i] ? rows[i] : rows[i] = [];
-            var col = cols[j] ? cols[j] : cols[j] = [];
-            var blo = blos[k] ? blos[k] : blos[k] = [];
-            if (row.indexOf(num) === -1 && col.indexOf(num) === -1 && blo.indexOf(num) === -1) {
-                row.push(num);
-                col.push(num);
-                blo.push(num);
-            } else {
-                return false;
+        validateQuestion = function (q) {
+            var rows = _rows;
+            var cols = _cols;
+            var blos = _blos;
+
+            for (var gi = 0; gi < 9; gi++) {
+                rows[gi] = 0;
+                cols[gi] = 0;
+                blos[gi] = 0;
             }
-        }
-        return true;
-    };
-
-    var createQuestionFromMemoMap = function ($g, memoMap, pattern) {
-        var q = [];
-        for (var i = 0; i < LEN; i++) {
-            var row = [];
-            for (var j = 0; j < LEN; j++) {
-                var candidates = memoMap[cellNames[i][j]];
-                if (candidates.len === 1) {
-                    row.push(candidates.hash);
+            var i;
+            var j;
+            var k;
+            for (var cli = 0; cli < 81; cli++) {
+                var cell = allCells[cli];
+                var row = rows[i = cell.i];
+                var col = cols[j = cell.j];
+                var blo = blos[k = cell.k];
+                var num;
+                if (!(num = q[i][j])) continue;
+                num = 1 << num;
+                if (row & num || col & num || blo & num) {
+                    return false;
                 } else {
-                    row.push(0);
+                    rows[i] |= num;
+                    cols[j] |= num;
+                    blos[k] |= num;
                 }
             }
-            q.push(row);
+            return true;
+        };
+    })();
+
+    var createQuestionFromMemoMap = function ($g, memoMap, pattern) {
+        var q = new Array(81);
+        for (var index = 0; index < 81; index++) {
+            var candidates = memoMap[index];
+            if (candidates.len === 1) {
+                q[index] = candidates.hash;
+            } else {
+                q[index] = 0;
+            }
         }
 
         var newMemoMap = copyMemoMap(memoMap);
         var newCountMemo = copyCountMemo($g.countMemo);
         for (var pi = 0, plen = pattern.length; pi < plen; pi++) {
             var temp = pattern[pi];
-            var memo = newMemoMap[temp.cell.key];
+            var nums = hashMemo[newMemoMap[temp.cell.key].hash - temp.num]
             newMemoMap[temp.cell.key] = createCandidates(temp.num, 1, temp.cell);
-            for (var ni = 0, nums = hashMemo[memo.hash - temp.num], nlen = nums.length; ni < nlen; ni++) {
+            for (var ni = 0, nlen = nums.length; ni < nlen; ni++) {
                 var num = nums[ni];
-                newCountMemo.rowsMemo[temp.cell.i][num]--;
-                newCountMemo.colsMemo[temp.cell.j][num]--;
-                newCountMemo.blosMemo[temp.cell.k][num]--;
+                newCountMemo.rows[temp.cell.i][num]--;
+                newCountMemo.cols[temp.cell.j][num]--;
+                newCountMemo.blos[temp.cell.k][num]--;
             }
-            q[temp.cell.i - 1][temp.cell.j - 1] = temp.num;
+            q[temp.cell.key] = temp.num;
         }
         return [q, newMemoMap, newCountMemo];
     };
 
     var copyMemoMap = function (memoMap) {
-        var newMemoMap = [];
-        for (var index = 0; index < 81; index++) {
-            var memo = memoMap[index];
-            newMemoMap.push(createCandidates(memo.hash, memo.len, memo.cell));
+        var newMemoMap = new Array(81);
+        for (var i = 0; i < 81; i++) {
+            var memo = memoMap[i];
+            newMemoMap[i] = createCandidates(memo.hash, memo.len, memo.cell);
         }
         return newMemoMap;
     };
 
     var copyCountMemo = function (countMemo) {
-        var rowsNumsMemo = new Array(10);
-        var colsNumsMemo = new Array(10);
-        var blosNumsMemo = new Array(10);
+        var rowsNumsMemo = new Array(9);
+        var colsNumsMemo = new Array(9);
+        var blosNumsMemo = new Array(9);
         var nums = NUMS;
-        for (var gi = 1; gi <= LEN; gi++) {
-            var rowMemo = rowsNumsMemo[gi] = new Array(257);
-            var colMemo = colsNumsMemo[gi] = new Array(257);
-            var bloMemo = blosNumsMemo[gi] = new Array(257);
-            for (var ni = 0; ni < LEN; ni++) {
+        for (var gi = 0; gi < 9; gi++) {
+            rowsNumsMemo[gi] = new Array(257);
+            colsNumsMemo[gi] = new Array(257);
+            blosNumsMemo[gi] = new Array(257);
+            for (var ni = 0; ni < 9; ni++) {
                 var hash = nums[ni];
-                rowMemo[hash] = countMemo.rowsMemo[gi][hash];
-                colMemo[hash] = countMemo.colsMemo[gi][hash];
-                bloMemo[hash] = countMemo.blosMemo[gi][hash];
+                rowsNumsMemo[gi][hash] = countMemo.rows[gi][hash];
+                colsNumsMemo[gi][hash] = countMemo.cols[gi][hash];
+                blosNumsMemo[gi][hash] = countMemo.blos[gi][hash];
             }
         }
-        return { rowsMemo: rowsNumsMemo, colsMemo: colsNumsMemo, blosMemo: blosNumsMemo };
+        return { rows: rowsNumsMemo, cols: colsNumsMemo, blos: blosNumsMemo };
     };
 
     var memoMapToAnswer = function (memoMap) {
         var answer = [];
-        for (var i = 0; i < LEN; i++) {
+        for (var i = 0; i < 9; i++) {
             var row = [];
-            for (var j = 0; j < LEN; j++) {
+            for (var j = 0; j < 9; j++) {
                 row.push((Math.log2(memoMap[cellNames[i][j]].hash) + 1));
             }
             answer.push(row);
@@ -1516,9 +1426,9 @@ var solver = exports;
 
     var memoMapHashToArray = function (memoMap) {
         var memoMapArray = [];
-        for (var i = 0; i < LEN; i++) {
+        for (var i = 0; i < 9; i++) {
             var row = [];
-            for (var j = 0; j < LEN; j++) {
+            for (var j = 0; j < 9; j++) {
                 row.push(hashMemoLog2[memoMap[cellNames[i][j]].hash].concat());
             }
             memoMapArray.push(row);
