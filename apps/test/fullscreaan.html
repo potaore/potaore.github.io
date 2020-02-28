@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Language" content="ja" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Script-Type" content="text/javascript" />
+
+    <title>test</title>
+    <script type="text/javascript">
+        const full = () => document.body.requestFullscreen();
+        //const full = () => document.getElementById("fulldiv").requestFullscreen();
+    </script>
+
+<body>
+    <div id="fulldiv" style="background-color: antiquewhite;">
+        <input type="button" value="フルスクリーン" onclick="full()" />
+        test
+        <span>span</span>
+    </div>
+</body>
+
+</html>
