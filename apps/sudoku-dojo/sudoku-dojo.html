@@ -76,7 +76,7 @@
         function on_next() {
             var elem = document.getElementById("q-number");
             var q_number = parseInt(elem.value);
-            if (q_number >= 9000) {} else {
+            if (q_number >= 9500) {} else {
                 if (q_number || q_number == 0) {
                     q_number++;
                 } else {
@@ -433,7 +433,7 @@
 
 <body onload="init()">
     <div id="conten-wrapper">
-        <h1>Sudoku-Dojo v1.6.3</h1>
+        <h1>Sudoku-Dojo v1.6.4</h1>
         <div id="menu-div">
             <table id="menu" class="transparent">
                 <tr class="transparent">
@@ -516,7 +516,7 @@
                 </table>
             </div>
             <div class="benchmark" style="display: none;">
-                <input type="button" id="button-benchmark-start" class="button benchmark header" onclick="start_benchmark()" value="Solve q1-q9000">
+                <input type="button" id="button-benchmark-start" class="button benchmark header" onclick="start_benchmark()" value="Solve q1-q9500">
                 <input type="button" id="button-benchmark-stop" class="button" onclick="stop_benchmark()" value="Stop" style="display: none;">
                 <textarea id="benchmark-result" disabled="disabled"></textarea>
             </div>
